@@ -2,7 +2,7 @@ This is a simple test for 1d incompresive shallow water equation (L = 100m , dx 
 
 ![equation](https://github.com/lpyrubber/skill_demonstration/blob/master/shallow_water/picture/sw_1d_eqn.jpg?raw=true)
 
-Here is my initial state
+Here is the initial state
 ![initial state](https://github.com/lpyrubber/skill_demonstration/blob/master/shallow_water/picture/h_v_1d_init.jpg?raw=true)
 
 After 4 sec (800 steps)
