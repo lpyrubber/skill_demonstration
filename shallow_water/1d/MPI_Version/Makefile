@@ -8,7 +8,7 @@ CPU_MPI:
 	mpicc -c main.c
 
 CPU_CORE:
-	g++ -c func.c 
+	mpicc -c func.c 
 
 clean:
 	rm *.o
