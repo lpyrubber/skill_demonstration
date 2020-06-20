@@ -9,8 +9,9 @@
 #define DX      (L/N)
 #define DT      (0.01*DX)
 #define Z       (DT/DX)
-#define NO_STEP 10
+#define NO_STEP 800
 #define G       9.81
+#define DEBUG   1
 
 void Allocate_Memory( float **a , float **b , float **c , float **d );
 void Initial( int i , float *a );
@@ -69,8 +70,9 @@ void Initial( int i , float *a ){
 }
 
 void Compute( float *a , float *b , float *c , float *d ){
-	int i;
+	int i, tid;
 	float vel , acc , F1 , F2 , Fr , FL1 , FL2 , FR1 , FR2 ;
+	tid = omp_get_thread_num();
 	#pragma omp for
 	for( i = 0 ; i < N + 2 ; ++i ){
 		vel = a[ i + N + 2 ] / a[ i ] ;
@@ -79,13 +81,16 @@ void Compute( float *a , float *b , float *c , float *d ){
 		if ( Fr >   1 ) Fr = 1;
 		if ( Fr < - 1 ) Fr = -1 ;
 		F1 = a[ i ] * vel ;
-		F2 = a[ i ] * vel * vel + 0.5 * G * a[ i ] + a[ i ];
+		F2 = a[ i ] * vel * vel + 0.5 * G * a[ i ] * a[ i ];
 		c[ i         ] =  0.5 * ( F1 * ( Fr + 1 ) + a[ i         ] * acc * ( 1 - Fr * Fr ) ) ;
                 c[ i + N + 2 ] =  0.5 * ( F2 * ( Fr + 1 ) + a[ i + N + 2 ] * acc * ( 1 - Fr * Fr ) ) ;
                 d[ i         ] = -0.5 * ( F1 * ( Fr - 1 ) + a[ i         ] * acc * ( 1 - Fr * Fr ) ) ;
                 d[ i + N + 2 ] = -0.5 * ( F2 * ( Fr - 1 ) + a[ i + N + 2 ] * acc * ( 1 - Fr * Fr ) ) ;
-
+//		if( DEBUG ){
+//			printf( "%d %lf %lf %lf %lf %lf\n" , i , Fr , F1 , F2 , vel , acc );
+//		}
 	}
+	
 	#pragma omp barrier
 	#pragma omp for
 	for( i = 1 ; i < N + 1 ; ++i ){
