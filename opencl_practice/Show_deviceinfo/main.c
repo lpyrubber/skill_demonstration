@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <CL/cl.h>
-//#include "kernel.cl.h"
 
 #define NUM_VALUES 1024
 

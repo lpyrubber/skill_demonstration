@@ -60,10 +60,6 @@ int main(int argc, const char * argv[]) {
         }
     }
     
-    for( i = 0 ; i < N + 2 ; ++i ){
-        printf("%d %f %f\n", i , u[ i ] , s[ i ] );
-    }
-    
     // Get platform and device information
     cl_platform_id *platforms = NULL;
     cl_uint num_platforms;
@@ -88,7 +84,7 @@ int main(int argc, const char * argv[]) {
     
     // Create a command queue
     cl_command_queue command_queue;
-    command_queue = clCreateCommandQueue( context , device_list[0] , 0 , &clStatus );
+    command_queue = clCreateCommandQueueWithProperties( context , device_list[0] , 0 , &clStatus );
     
     // Create memory buffers on the device for each array
     cl_mem U_clmem = clCreateBuffer( context , CL_MEM_READ_WRITE , 2 * array_size * sizeof( float ) , NULL , &clStatus );
@@ -175,7 +171,7 @@ int main(int argc, const char * argv[]) {
     // Save Result
     fp = fopen( "data_0.txt", "w");
     for( i = 0 ; i < N + 2 ; ++i ){
-        fprintf(fp , "%e %e %e\n", i * DX , u[ i ] , s[ i ] / u[ i ] );
+        fprintf( fp, "%e %e %e\n", i*DX , u[ i ] , s[ i ] / u[ i ] );
     }
     fclose(fp);
     clStatus = clReleaseProgram( program );
