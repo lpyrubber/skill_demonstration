@@ -11,7 +11,7 @@
 #define DT      (0.01*DX)  //sec for dt
 #define Z       (DT/DX)    //
 #define GAP     10	   //pick the value after number of dx
-#define NO_STEP 10         //total step
+#define NO_STEP 800         //total step
 #define G       9.81       //gravity acceleration
 #define DEBUG   1
 

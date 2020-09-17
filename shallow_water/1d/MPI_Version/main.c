@@ -240,7 +240,7 @@ void Save_Result( float *a , float *b ){
 	//open output file
 	output = fopen( buffer , "w");
 	for( i = 0 ; i < N ; ++i ){
-	       fprintf( output , "%lf %lf %lf\n" , DX * i , a[ i ] , b[ i ]);
+	       fprintf( output , "%lf %lf %lf\n" , DX * i , a[ i ] , b[ i ] / a[ i ]);
 	}
 	fclose ( output );
 	++time;

@@ -12,11 +12,11 @@
 #include <CL/cl.h>
 
 #define L       100.0
-#define N       200
+#define N       20000
 #define DX      (L/N)
 #define DT      (0.01*DX)
 
-#define NO_STEP 800
+#define NO_STEP 80000
 #define G       9.81
 
 int main(int argc, const char * argv[]) {
@@ -128,9 +128,15 @@ int main(int argc, const char * argv[]) {
         printf( "Error: Failed to Create Compute kernel!\n" );
         exit(1);
     }
-    
-    size_t global_size = 1024;
-    size_t local_size = 64;
+    size_t global_size = 2;
+    char flag = 1;
+    while(flag){
+	global_size *= 2;
+	if( global_size > N ){
+	    flag = 0;
+	}
+    }
+    size_t local_size = 256;
     
     for( i = 0; i < NO_STEP; ++i){
         // Input argument of the kernel
