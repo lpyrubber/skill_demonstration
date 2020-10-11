@@ -12,7 +12,7 @@
 #define DT (0.01*DX)
 #define Zx (DT/DX)
 #define Zy (DT/DY)
-#define NO_STEP 1
+#define NO_STEP 800
 #define G 9.81
 
 float *u, *u_new;
@@ -60,14 +60,14 @@ void Initial(){
 	for( j = 0 ; j < Ny + 2 ; ++j ){
 		for( i = 0 ; i < Nx + 2 ; ++i ){
 //			if( ( ( i - 1 ) < 0.5 * Nx ) && ( ( j - 1 ) < 0.5 * Ny ) ){
-			if( (  i - 1 ) < 0.5 * Nx ){
+			if( (  j - 1 ) < 0.5 * Ny ){
 				u[ i + ( Nx + 2 ) * j                              ] = 10.0;
 				u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2)     ] = 0.0;
 				u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2) * 2 ] = 0.0;
 			}else{
 				u[ i + ( Nx + 2 ) * j                              ] = 1.0;
-				u[ i + ( Nx + 2 ) * j + ( Ny + 2 ) * ( Ny + 2)     ] = 0.0;
-				u[ i + ( Nx + 2 ) * j + ( Ny + 2 ) * ( Ny + 2) * 2 ] = 0.0;
+				u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2)     ] = 0.0;
+				u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2) * 2 ] = 0.0;
 			}
 		}
 	}
@@ -81,10 +81,8 @@ void Compute_Flux(){
 	float Frx, Fry;
 	for( j = 0 ; j < Ny + 2 ; ++j ){
 		for( i = 0 ; i < Nx + 2 ; ++i ){
-	                velx = u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )     ]\
-			       / u[ i + ( Nx + 2 ) * j ];
-			vely = u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 2 ]\
-			       / u[ i + ( Nx + 2 ) * j ];
+	                velx = u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )     ] / u[ i + ( Nx + 2 ) * j ];
+			vely = u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 2 ] / u[ i + ( Nx + 2 ) * j ];
 	                a    = sqrt( G * u[ i + ( Nx + 2 ) * j ] );
 	                Frx = velx / a;
 			Fry = vely / a;
@@ -100,11 +98,11 @@ void Compute_Flux(){
 	                fp[ i + ( Nx + 2 ) * j                               ]\
 			       	=  0.5 * ( F1 * ( Frx + 1 )\
 				+ u[ i + ( Nx + 2 ) * j                               ] * a * ( 1 - Frx * Frx ) );
-	                fp[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2)      ]\
+	                fp[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )     ]\
 			   	=  0.5 * ( F2 * ( Frx + 1 )\
 				+ u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )     ] * a * ( 1 - Frx * Frx ) );
 	                fp[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 2 ]\
-			       	=  0.5 * ( F2 * ( Frx + 1 )\
+			       	=  0.5 * ( F3 * ( Frx + 1 )\
 				+ u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 2 ] * a * ( 1 - Frx * Frx ) );
 	                fm[ i + ( Nx + 2 ) * j                               ]\
 			       	= -0.5 * ( F1 * ( Frx - 1 )\
@@ -113,7 +111,7 @@ void Compute_Flux(){
 			       	= -0.5 * ( F2 * ( Frx - 1 )\
 				+ u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )     ] * a * ( 1 - Frx * Frx ) );
                 	fm[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 2 ]
-			       	= -0.5 * ( F1 * ( Frx - 1 )\
+			       	= -0.5 * ( F3 * ( Frx - 1 )\
 				+ u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 2 ] * a * ( 1 - Frx * Frx ) );
 			//y-dir
 			F1 = u[ i + ( Nx + 2 ) * j ] * vely;
@@ -127,7 +125,7 @@ void Compute_Flux(){
 				=  0.5 * ( F2 * ( Fry + 1 )\
 				+ u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )     ] * a * ( 1 - Fry * Fry ) );
 	                fp[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 5 ]\
-				=  0.5 * ( F2 * ( Fry + 1 )\
+				=  0.5 * ( F3 * ( Fry + 1 )\
 				+ u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 2 ] * a * ( 1 - Fry * Fry ) );
 	                fm[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 3 ]\
 			       	= -0.5 * ( F1 * ( Fry - 1 )\
@@ -136,8 +134,9 @@ void Compute_Flux(){
 			       	= -0.5 * ( F2 * ( Fry - 1 )\
 				+ u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )     ] * a * ( 1 - Fry * Fry ) );
 	                fm[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 5 ]\
-			       	= -0.5 * ( F1 * ( Fry - 1 )\
+			       	= -0.5 * ( F3 * ( Fry - 1 )\
 				+ u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 2 ] * a * ( 1 - Fry * Fry ) );
+					
 		}
         }
 //	printf("finish compute flux\n");
@@ -174,54 +173,60 @@ void Compute_U(){
 			     + fm[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 5        ];
 			FR3y = fp[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 5        ]\
 			     + fm[ i + ( Nx + 2 ) * (j + 1 ) + ( Nx + 2 ) * ( Ny + 2 ) * 5 ];
-
+//			if(j==1)printf("%d %f %f %f %f %f %f\n", i, FL1x, FR1x, FL2x, FR2x, FL3x, FR3x);
 		       	u_new[ i + ( Nx + 2 ) * j                              ]\
 				= u[ i + ( Nx + 2 ) * j                              ]\
-			          - Zx * ( FR1x - FL1x ) + Zy * ( FR1y - FL1y );
+			          - Zx * ( FR1x - FL1x ) - Zy * ( FR1y - FL1y );
 	                u_new[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2)     ]\
 			       	= u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2)     ]\
-				  - Zx * ( FR2x - FL2x ) + Zy * ( FR2y - FL2y );
+				  - Zx * ( FR2x - FL2x ) - Zy * ( FR2y - FL2y );
 	                u_new[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2) * 2 ]\
 			       	= u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2) * 2 ]\
-				  - Zx * ( FR3x - FL3x ) + Zy * ( FR3y - FL3y );
+				  - Zx * ( FR3x - FL3x ) - Zy * ( FR3y - FL3y );
 		}
         }
 //	printf("\tfinish phase 1\n");
+	
 	for( i = 0 ; i < Nx + 2 ; ++i){
 		u_new[ i                                                         ]\
 		       	=   u_new[ i + Nx + 2                                       ];
 		u_new[ i + ( Nx + 2 ) * ( Ny + 1 )                               ]\
 			=   u_new[ i + ( Nx + 2 ) * Ny                              ];
+
 		u_new[ i + ( Nx + 2 ) * ( Ny + 2 )                               ]\
-			= - u_new[ i + Nx + 2 + ( Nx + 2 ) * ( Ny + 2 )             ];
+			=  u_new[ i + Nx + 2 + ( Nx + 2 ) * ( Ny + 2 )             ];
 		u_new[ i + ( Nx + 2 ) * ( Ny + 1 ) + ( Nx + 2 ) * ( Ny + 2 )     ]\
-			= - u_new[ i + ( Nx + 2 ) * Ny + ( Nx + 2 ) * ( Ny + 2 )    ];
+			=  u_new[ i + ( Nx + 2 ) * Ny + ( Nx + 2 ) * ( Ny + 2 )    ];
+
 		u_new[ i + ( Nx + 2 ) * ( Ny + 2 ) * 2                           ]\
 			= - u_new[ i + Nx + 2 + ( Nx + 2 ) * ( Ny + 2 ) *2          ];
 		u_new[ i + ( Nx + 2 ) * ( Ny + 1 ) + ( Nx + 2 ) * ( Ny + 2 ) * 2 ]\
 			= - u_new[ i + ( Nx + 2 ) * Ny + ( Nx + 2 ) * ( Ny + 2 ) *2 ];
 	}
 	for( j = 0 ; j < Ny + 2 ; ++j){
-		u_new[ j * Nx                                        ]\
-			= u_new[ 1 + j * Nx                                ];
-		u_new[ Nx + 1 + j * Nx                               ]\
-			= u_new[ Nx + j * Nx                               ]; 
-		u_new[ j * Nx + ( Nx + 2 ) * ( Ny + 2 )              ]\
-			= u_new[ 1 + j * Nx + ( Nx + 2 ) * ( Ny + 2 )      ];
-		u_new[ Nx + 1 + j * Nx + ( Nx + 2 ) * ( Ny + 2 )     ]\
-			= u_new[ Nx + j * Nx + ( Nx + 2 ) * ( Ny + 2 )     ]; 
-		u_new[ j * Nx + ( Nx + 2 ) * ( Ny + 2 ) * 2          ]\
-			= u_new[ 1 + j * Nx + ( Nx + 2 ) * ( Ny + 2 ) * 2  ];
-		u_new[ Nx + 1 + j * Nx + ( Nx + 2 ) * ( Ny + 2 ) * 2 ]\
-			= u_new[ Nx + j * Nx + ( Nx + 2 ) * ( Ny + 2 ) * 2 ]; 
+		u_new[ ( Nx + 2 ) * j                                        ]\
+			= u_new[ 1 + ( Nx + 2 ) * j                                ];
+		u_new[ Nx + 1 + ( Nx + 2 ) * j                               ]\
+			= u_new[ Nx + ( Nx + 2 ) * j                               ]; 
+
+		u_new[ ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )              ]\
+			= - u_new[ 1 + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )      ];
+		u_new[ Nx + 1 + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )     ]\
+			= - u_new[ Nx + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )     ]; 
+
+		u_new[ ( Nx + 2 ) * j  + ( Nx + 2 ) * ( Ny + 2 ) * 2          ]\
+			=  u_new[ 1 + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 2  ];
+		u_new[ Nx + 1 + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 2 ]\
+			=  u_new[ Nx + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 ) * 2 ]; 
 	}
+	
 //	printf("finish compute u\n");
 }
 
 void Update_U(){
         int i, j;
 	for(j = 0 ; j < Ny + 2 ; ++j){
-	        for(i = 0 ; i < Nx +2 ; i++){
+	        for(i = 0 ; i < Nx + 2 ; i++){
         	        u[ i + ( Nx + 2 ) * j                               ]\
 				= u_new[ i + ( Nx + 2 ) * j                               ];
         	        u[ i + ( Nx + 2 ) * j + ( Nx + 2 ) * ( Ny + 2 )     ]\

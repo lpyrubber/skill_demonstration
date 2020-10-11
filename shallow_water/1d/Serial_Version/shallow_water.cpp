@@ -10,7 +10,7 @@
 #define DT (0.01*DX)
 #define Z (DT/DX)
 #define GAP 10
-#define NO_STEP 800
+#define NO_STEP 2
 #define G 9.81
 
 float *u, *u_new;
