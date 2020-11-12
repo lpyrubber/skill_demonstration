@@ -1,4 +1,4 @@
-CUDA_INSTALL_PATH :=/usr/local/cuda-10.0
+CUDA_INSTALL_PATH :=/usr/local/cuda-11.0
 CUDA_INCLUDES := -I $(CUDA_INSTALL_PATH)/include
 CUDA_LIB := -L $(CUDA_INSTALL_PATH)/lib64 -lcuda -lcudart
 
