@@ -78,7 +78,7 @@ void Allocate_Memory(){
 void Initial(){
 	int i;
 	#pragma omp for
-	for( i = 0 ; i < NS * SINGLE + 2 ; ++i ){
+	for( i = 0 ; i < NS * SINGLE ; ++i ){
 		if( i < 0.5 * N  ){
 			u1[ i ] = 10.0;	
 		}else{
