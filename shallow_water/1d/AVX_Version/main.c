@@ -9,7 +9,7 @@
 #define DT      (0.01*DX)
 #define Z       (DT/DX)
 #define GAP     10
-#define NO_STEP 800
+#define NO_STEP 1
 #define G       9.81
 #define SINGLE  8
 #define NS      ((N+SINGLE+1)/SINGLE) 
@@ -35,9 +35,6 @@ int main(){
 	Initial();
 	for(i=0; i<NO_STEP; ++i){
 		Compute_Flux();
-//		for(j = 0 ; j < N+2; j++){
-//			printf("%e %e %e %e\n",fp1[j], fp2[j], fm1[j], fm2[j]);
-//		}
 		Compute_U();
 		Update_U();
 	}
@@ -70,7 +67,7 @@ void Allocate_Memory(){
 
 void Initial(){
 	int i;
-	for( i = 0 ; i < NS * SINGLE + 2 ; ++i ){
+	for( i = 0 ; i < NS * SINGLE; ++i ){
 		if( i < 0.5 * N  ){
 			u1[ i ] = 10.0;	
 		}else{
