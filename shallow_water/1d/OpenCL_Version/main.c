@@ -9,7 +9,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <CL/cl.h>
+#ifdef __APPLE__
+    #include <OpenCL/cl.h>
+#else
+    #include <CL/cl.h>
+#endif
 
 #define L       100.0
 #define N       20000
@@ -84,7 +88,11 @@ int main(int argc, const char * argv[]) {
     
     // Create a command queue
     cl_command_queue command_queue;
+#ifdef __APPLE__
+    command_queue = clCreateCommandQueue( context , device_list[0] , 0 , &clStatus );
+#else
     command_queue = clCreateCommandQueueWithProperties( context , device_list[0] , 0 , &clStatus );
+#endif
     
     // Create memory buffers on the device for each array
     cl_mem U_clmem = clCreateBuffer( context , CL_MEM_READ_WRITE , 2 * array_size * sizeof( float ) , NULL , &clStatus );
@@ -136,7 +144,7 @@ int main(int argc, const char * argv[]) {
 	    flag = 0;
 	}
     }
-    size_t local_size = 256;
+    size_t local_size = 64;
     
     for( i = 0; i < NO_STEP; ++i){
         // Input argument of the kernel
