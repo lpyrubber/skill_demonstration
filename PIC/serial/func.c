@@ -35,7 +35,8 @@ void Pushv(){
 void Efield(){
 	//CG method
 	double b , sum , sum1 , sum2 , sum3 , alfa , beta , temp , error;
-	int l , k , up , down;
+	int i , k , up , down;
+	char flag = 1;
 	for( i = 0 ; i < Nx ; ++i ){
 		phi[ i ] = 0;
 	}
@@ -57,6 +58,44 @@ void Efield(){
 		sum1 += r[ i ] * r[ i ];
 		sum2 += p[ i ] * q[ i ];
 	}
+	alfa = sum1 / sum2;
+	k = 0;
+
+	while( ( k < Itstep ) && ( flag ) ){
+		sum = 0;
+		for( i = 0 ; i < Nx ; ++i ){
+			temp = phi[ i ];
+			phi[ i ] += alfa * p[ i ];
+			temp -= phi[ i ];
+			sum += temp * temp;
+			r[ i ] = r[i] - alfa * q[ i ];
+		}
+		sum3 = 0;
+		for( i = 0 ; i < Nx ; ++i ){
+			sum3 += r[ i ] * r[ i ];
+		}
+		beta = sum3 / sum1;
+		for( i = 0 ; i < Nx ; ++i ){
+			p[ i ] = r[ i ] + beta * p[ i ];
+		}
+		sum1 = sum3;
+		sum2 = 0;
+		for( i = 0; i < Nx ; ++i ){
+			up = ( i + Nx + 1 ) % Nx;
+			down = ( i + Nx -1 ) % Nx;
+			q[ i ] = P[ down ] + p[ up ] - 2 * p[ i ];
+			sum2 += q[ i ] * p[ i ];
+		}
+		alfa = sum1 / sum2;
+		flag = ( error < Itlimit )? 0 : 1;
+		++k;
+	}
+	for( i = 0 ; i < Nx ; ++i ){
+		up = ( i + Nx + 1 ) % Nx;
+		down = ( i + Nx - 1 ) % Nx;
+		e[ i ] = -0.5 * ( phi[ up ] -phi[down] ) / dx;
+	}
+}
 
 
 

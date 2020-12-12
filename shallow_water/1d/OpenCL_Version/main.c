@@ -1,11 +1,3 @@
-//
-//  main.c
-//  OpenCL_shallow_water
-//
-//  Created by Po Yu on 2020/8/1.
-//  Copyright © 2020 Po Yu. All rights reserved.
-//
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
