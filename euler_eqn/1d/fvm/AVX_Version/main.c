@@ -3,7 +3,7 @@
 #include <immintrin.h>
 #include <string.h>
 
-#define L       100.0
+#define L       1.0
 #define N       200
 #define DX      (L/N)
 #define DT      (0.01*DX)
