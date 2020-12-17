@@ -4,6 +4,6 @@
 *.run
 *.out
 *.exe
-*,ipynb
+*.ipynb
 .DS_store
 .Rhistory
