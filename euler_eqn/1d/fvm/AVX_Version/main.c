@@ -8,7 +8,7 @@
 #define DX      (L/N)
 #define DT      (0.01*DX)
 #define Z       (DT/DX)
-#define NO_STEP 1
+#define NO_STEP 3200
 #define R       1.0
 #define gamma   ( 7.0 / 5.0 )
 #define CV      ( R / ( gamma - 1 ) )
@@ -241,7 +241,7 @@ void Compute(){
 		//u3[i]=u3[i]-Z*(FR3-FL3)
 		AVX_t3    = _mm256_sub_ps( AVX_FR3 , AVX_FL3 );
 		AVX_t3    = _mm256_mul_ps( AVX_Z , AVX_t3 );
-		AVX_u2[i] = _mm256_sub_ps( AVX_u3[i] , AVX_t3);
+		AVX_u3[i] = _mm256_sub_ps( AVX_u3[i] , AVX_t3);
 	}
 	u1[0]   =  u1[1];
 	u2[0]   = -u2[1];
