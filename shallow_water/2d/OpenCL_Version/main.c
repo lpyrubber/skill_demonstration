@@ -20,7 +20,7 @@
 #define LOCAL   256
 #define GLOBAL  ((((Nx+2)*(Ny+2)+LOCAL-1)/LOCAL)*LOCAL)
 
-#define DEVICE     0
+#define DEVICE     1
 #define PLATFORM   0
 #define LOCAL_SIZE 256
 

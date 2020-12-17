@@ -13,7 +13,7 @@
 #define CP    (CV+R)
 #define STEP  3200
 
-float *rho, *u, *T, *P;
+float *rho, *u, *T;
 float *U, *F;
 float *ML, *MR, *PL, *PR;
 

@@ -6,17 +6,17 @@ __kernel void GPU_Calc(
                        __global float *C)
 {
     float vel , acc, F1 , F2 , Fr , FL1 , FL2 , FR1 , FR2;
+    float G = 9.81; 
     int i = get_global_id(0);
-    float g = 9.81;
     //compute flux
     if( i < N  ){
         vel = B[ i ] / A[ i ];
-        acc = sqrt( g * A[ i ] );
+        acc = sqrt( G * A[ i ] );
         Fr = vel / acc;
         if ( Fr > 1 ) Fr = 1;
         if ( Fr < -1 ) Fr = -1;
         F1 = A[ i ] * vel;
-        F2 = A[ i ] * vel * vel + 0.5 * g * A[ i ] * A[ i ];
+        F2 = A[ i ] * vel * vel + 0.5 * G * A[ i ] * A[ i ];
         C[ i         ] =   0.5 * ( F1 * ( Fr + 1 ) + A[ i ] * acc * ( 1 - Fr * Fr ) );
         C[ i + N     ] =   0.5 * ( F2 * ( Fr + 1 ) + B[ i ] * acc * ( 1 - Fr * Fr ) );
         C[ i + N * 2 ] = - 0.5 * ( F1 * ( Fr - 1 ) + A[ i ] * acc * ( 1 - Fr * Fr ) );

@@ -1,59 +1,60 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <stdio.h>
+#include <string.h>
 #ifdef __APPLE__
-	#include <OpenCL/cl.h>
+    #include <OpenCL/cl>
 #else
-	#include <CL/cl.h>
+    #include <CL/cl.h>
 #endif
 
-#define L       1.0
-#define N       20000
-#define DX      (L/N)
-#define DT      (0.01*DX)
-#define Z       (DT/DX)
-#define NO_STEP 3200 
-#define R       1.0
-#define gamma   ( 7.0 / 5.0 )
-#define CV      ( R / ( gamma - 1 ) )
-#define CP      ( CV + R )
+#define L 100.0
+#define N 200
+#define Dx (L/N)
+#define DT (0.01*Dx)
+#define Z (DT/DX)
+#define NO_STEP 1
+#define gamma 1.4
+#define R 1.0
+#define CV (R/(gamma-1))
+#define CP (CV+R)
 
-#define DEVICE     1
-#define PLATFORM   0
-#define LOCAL      256
-#define GLOBAL     (((N+LOCAL-1)/LOCAL)*LOCAL)
+#define LOCAL 256
+#define GLOBAL (((N+LOCAL-1)/LOCAL)*LOCAL)
+#define PLATFORM 0
+#define DEVICE 1
 
 #define CaseReturnString(x) case x: return #x;
 
 char* clErrorStr(cl_int err);
 
-int main(int argc, const char *argv[]){
-	float *u , *rho , *v , *T, Z_cl;
-	FILE *fp;
-	char *source_str;
-	size_t source_size , program_size , array_size , global_size , local_size;
-	int i , j , N_cl;
+int main(int argc, char* argv[]){
+    float *rho, *v, *T, Z_cl;
+    float *u;
+    FILE *fp;
+    char *source_str;
+    size_t source_size, program_size, array_size, global_size, local_size;
+    int i, j, N_cl;
 
-	Z_cl = Z;
-	N_cl = N;
-	global_size = GLOBAL;
-	local_size = LOCAL;
+    Z_cl = Z;
+    N_cl = N;
+    global_size = GLOBAL;
+    local_size = LOCAL;
 
-	//variable for OpenCL
-	
-	cl_platform_id *platforms = NULL;
-	cl_device_id *device_list = NULL;
-	cl_context context;
-	cl_command_queue command_queue;
-	cl_mem U_clmem , RHO_clmem , V_clmem , T_clmem , FM_clmem , FP_clmem;
-	cl_program program;
-	cl_kernel kernel;
-	cl_uint num_platforms, num_devices;
-	cl_int clStatus;
+    //variable for OpenCL
 
-	//load program
-	
-	fp = fopen( "kernel.cl", "rb");
+    cl_platform_id *platforms = NULL;
+    cl_device_id *device_list = NULL;
+    cl_context context;
+    cl_command_queue command_queue;
+    cl_mem U_clmem, RHO_clmem, V_clmem, T_clmem, ML_clmem;
+    cl_mem MR_clmem, PL_clmem, PR_clmem, F_clmem;
+    cl_program program;
+    cl_kernel kernel;
+    cl_uint num_platforms, num_devices;
+    cl_int clStatus;
+
+    //load program
+    fp = fopen( "kernel.cl", "rb");
 	if( !fp ){
 		printf( "Error: failed to open cl file\n");
 	}
@@ -115,9 +116,12 @@ int main(int argc, const char *argv[]){
 	V_clmem   = clCreateBuffer(context, CL_MEM_READ_WRITE, array_size, NULL, &clStatus);
 	T_clmem   = clCreateBuffer(context, CL_MEM_READ_WRITE, array_size, NULL, &clStatus);
 	U_clmem   = clCreateBuffer(context, CL_MEM_READ_WRITE, 3*array_size, NULL, &clStatus);
-	FM_clmem  = clCreateBuffer(context, CL_MEM_READ_WRITE, 3*array_size, NULL, &clStatus);
-	FP_clmem  = clCreateBuffer(context, CL_MEM_READ_WRITE, 3*array_size, NULL, &clStatus);
-	if(!RHO_clmem||!V_clmem||!T_clmem||!U_clmem||!FM_clmem||!FP_clmem){
+    F_clmem   = clCreateBuffer(context, CL_MEM_READ_WRITE, 3*array_size, NULL, &clStatus);
+    PL_clmem   = clCreateBuffer(context, CL_MEM_READ_WRITE, array_size, NULL, &clStatus);
+    PR_clmem   = clCreateBuffer(context, CL_MEM_READ_WRITE, array_size, NULL, &clStatus);
+    ML_clmem   = clCreateBuffer(context, CL_MEM_READ_WRITE, array_size, NULL, &clStatus);
+    MR_clmem   = clCreateBuffer(context, CL_MEM_READ_WRITE, array_size, NULL, &clStatus);
+	if(!RHO_clmem||!V_clmem||!T_clmem||!U_clmem||!F_clmem||!PL_clmem||!PR_clmem||!ML_clmem||!MR_clmem){
 		printf("Error: Failed to allocate device memory!\n%s\n", clErrorStr(clStatus));
 	}
 	//copy to the device
@@ -156,8 +160,11 @@ int main(int argc, const char *argv[]){
 		clStatus |= clSetKernelArg( kernel, 3, sizeof(cl_mem) , (void*) &RHO_clmem );
 		clStatus |= clSetKernelArg( kernel, 4, sizeof(cl_mem) , (void*) &V_clmem );
 		clStatus |= clSetKernelArg( kernel, 5, sizeof(cl_mem) , (void*) &T_clmem );
-		clStatus |= clSetKernelArg( kernel, 6, sizeof(cl_mem) , (void*) &FM_clmem );
-		clStatus |= clSetKernelArg( kernel, 7, sizeof(cl_mem) , (void*) &FP_clmem );
+		clStatus |= clSetKernelArg( kernel, 6, sizeof(cl_mem) , (void*) &F_clmem );
+		clStatus |= clSetKernelArg( kernel, 7, sizeof(cl_mem) , (void*) &PL_clmem );
+        clStatus |= clSetKernelArg( kernel, 8, sizeof(cl_mem) , (void*) &PR_clmem );
+        clStatus |= clSetKernelArg( kernel, 9, sizeof(cl_mem) , (void*) &ML_clmem );
+        clStatus |= clSetKernelArg( kernel,10, sizeof(cl_mem) , (void*) &MR_clmem );
 		if(clStatus != CL_SUCCESS){
 			printf("Error: Failed to set argument for kernels!\n%s\n", clErrorStr(clStatus));
 			exit(1);
@@ -187,8 +194,11 @@ int main(int argc, const char *argv[]){
 	clStatus = clReleaseKernel( kernel );
 	clStatus = clReleaseProgram( program );
 	clStatus = clReleaseMemObject( U_clmem );
-	clStatus = clReleaseMemObject( FM_clmem );
-	clStatus = clReleaseMemObject( FP_clmem );
+	clStatus = clReleaseMemObject( F_clmem );
+	clStatus = clReleaseMemObject( PL_clmem );
+    clStatus = clReleaseMemObject( PR_clmem );
+    clStatus = clReleaseMemObject( ML_clmem );
+    clStatus = clReleaseMemObject( MR_clmem );
 	clStatus = clReleaseMemObject( RHO_clmem );
 	clStatus = clReleaseMemObject( V_clmem );
 	clStatus = clReleaseMemObject( T_clmem );
@@ -204,6 +214,7 @@ int main(int argc, const char *argv[]){
 	free( device_list );
 	
 	return 0;
+
 }
 
 char *clErrorStr(cl_int err)

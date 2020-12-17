@@ -9,7 +9,7 @@
 
 #define CaseReturnString(x) case x: return #x;
 #define L       100.0
-#define N       200000
+#define N       200
 #define DX      (L/N)
 #define DT      (0.01*DX)
 
@@ -127,7 +127,7 @@ int main(int argc, const char * argv[]) {
     if(clStatus != CL_SUCCESS){
         size_t len;
         char buffer[2048];
-        printf("Error: Failed to build program executable!\n");
+        printf("Error: Failed to build program executable!\n%s\n", clErrorStr(clStatus));
         clGetProgramBuildInfo(program, device_list[0], CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &len);
         printf("%s\n", buffer);
         exit(1);
