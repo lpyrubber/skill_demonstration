@@ -1,0 +1,2 @@
+ALL:
+	g++ main.c
