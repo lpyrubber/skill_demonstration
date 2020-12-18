@@ -2,17 +2,17 @@
 #include <stdio.h>
 #include <string.h>
 #ifdef __APPLE__
-    #include <OpenCL/cl>
+    #include <OpenCL/cl.h>
 #else
     #include <CL/cl.h>
 #endif
 
 #define L 100.0
 #define N 200
-#define Dx (L/N)
-#define DT (0.01*Dx)
+#define DX (L/N)
+#define DT (0.01*DX)
 #define Z (DT/DX)
-#define NO_STEP 1
+#define NO_STEP 3200
 #define gamma 1.4
 #define R 1.0
 #define CV (R/(gamma-1))
