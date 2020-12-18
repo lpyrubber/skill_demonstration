@@ -1,6 +1,6 @@
 #include "main.h"
 
-__global__ void GPU_Calc( float *a , float *b, float *c );
+__global__ void GPU_Calc( float *d_a , float *d_b, float *d_c );
 
 void Allocate_Memory( float **h_a , float **h_b , float **d_a , float **d_b , float **d_c ){
 	cudaError_t Error;

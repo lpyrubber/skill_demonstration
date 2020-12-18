@@ -1,9 +1,9 @@
 #include "main.h"
 
-__global__ void GPU_Calc( float *a, float *b, float *c, float *d, float *e, float *f );
+__global__ void GPU_Calc( float *a, float *b, float *c, float *d, float *e, float *f, float *g, float *h, float *i );
 
 void Allocate_Memory( float **h_a, float **h_b, float **h_c, float **h_d\
-		   , float **d_a, float **d_b, float **d_c, float **d_d, float **d_e, float **d_f ){
+		   , float **d_a, float **d_b, float **d_c, float **d_d, float **d_e, float **d_f, float **d_g, float **d_h, float **d_i ){
 	cudaError_t Error;
 	size_t size;
 	printf( "Allocating Memory....\n" );
@@ -23,8 +23,14 @@ void Allocate_Memory( float **h_a, float **h_b, float **h_c, float **h_d\
 	if(DEBUG) printf( "CUDA ERROR cudaMalloc(d_d) = %s\n", cudaGetErrorString( Error ) );
 	Error = cudaMalloc( ( void** )d_e , 3 * size );
 	if(DEBUG) printf( "CUDA ERROR cudaMalloc(d_e) = %s\n", cudaGetErrorString( Error ) );
-	Error = cudaMalloc( ( void** )d_f , 3 * size );
+	Error = cudaMalloc( ( void** )d_f , size );
 	if(DEBUG) printf( "CUDA ERROR cudaMalloc(d_f) = %s\n", cudaGetErrorString( Error ) );
+	Error = cudaMalloc( ( void** )d_g , size );
+	if(DEBUG) printf( "CUDA ERROR cudaMalloc(d_g) = %s\n", cudaGetErrorString( Error ) );
+	Error = cudaMalloc( ( void** )d_h , size );
+	if(DEBUG) printf( "CUDA ERROR cudaMalloc(d_h) = %s\n", cudaGetErrorString( Error ) );
+	Error = cudaMalloc( ( void** )d_i , size );
+	if(DEBUG) printf( "CUDA ERROR cudaMalloc(d_i) = %s\n", cudaGetErrorString( Error ) );
 }
 
 void Send_To_Device( float *h_a, float *h_b, float *h_c, float *h_d\
@@ -43,58 +49,65 @@ void Send_To_Device( float *h_a, float *h_b, float *h_c, float *h_d\
 	if(DEBUG) printf( "CUDA ERROR Memcpy h_d -> d_d = %s\n", cudaGetErrorString( Error ) );
 }
 
-void GPU_Compute( float *d_a, float *d_b, float *d_c, float *d_d, float *d_e, float *d_f ){
-	GPU_Calc<<< BPG, TPB >>>( d_a, d_b, d_c, d_d, d_e, d_f );
+void GPU_Compute( float *d_a, float *d_b, float *d_c, float *d_d, float *d_e, float *d_f, float *d_g, float *d_h, float *d_i ){
+	GPU_Calc<<< BPG, TPB >>>( d_a, d_b, d_c, d_d, d_e, d_f, d_g, d_h, d_i );
 }
 
-__global__ void GPU_Calc( float *a, float *b, float *c, float *d, float *e, float *f ){
-	int i;
-	float acc, F1, F2, F3, Fr;
-	float FL1, FL2, FL3, FR1, FR2, FR3;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
-	if( i < N ){
-		acc = sqrt( gamma * R * d[ i ] );
-		Fr = c[ i ] / acc;
-		if ( Fr > 1  ) Fr =  1;
-		if ( Fr < -1 ) Fr = -1;
-		F1 = a[ i ] * c[ i ];
-		F2 = a[ i ] * c[ i ] * c[ i ] +  b[ i ] * R * d[ i ];
-		F3 = c[ i ] * ( a[ i + N * 2 ] + b[ i ] * R * d[ i ] );
-		f[ i         ] =  0.5*(F1*(Fr+1)+a[ i         ]*acc*(1-Fr*Fr));
-		f[ i + N     ] =  0.5*(F2*(Fr+1)+a[ i + N     ]*acc*(1-Fr*Fr));
-		f[ i + N * 2 ] =  0.5*(F3*(Fr+1)+a[ i + N * 2 ]*acc*(1-Fr*Fr));
-		e[ i         ] = -0.5*(F1*(Fr-1)+a[ i         ]*acc*(1-Fr*Fr));
-		e[ i + N     ] = -0.5*(F2*(Fr-1)+a[ i + N     ]*acc*(1-Fr*Fr));
-		e[ i + N * 2 ] = -0.5*(F3*(Fr-1)+a[ i + N * 2 ]*acc*(1-Fr*Fr));
+__global__ void GPU_Calc( float *a, float *b, float *c, float *d, float *e, float *f, float *g, float *h, float *i ){
+	int id;
+	float acc, M, Mt, P;
+	float FL[3], FR[3];
+	id = blockIdx.x * blockDim.x + threadIdx.x;
+	if(id<N){
+		acc=sqrt(gamma*R*d[id]);
+		M=c[id]/acc;
+		P=b[id]*R*d[id];
+		Mt=fabs(M);
+		if(Mt<=1){
+			f[id]= 0.25*P*(M+1)*(M+1)*(2-M);
+			g[id]= 0.25*P*(M-1)*(M-1)*(2+M);
+			h[id]= 0.25*(M+1)*(M+1);
+			i[id]=-0.25*(M-1)*(M-1);
+		}else{
+			f[id]= 0.5*P*(M+Mt)/M;
+			g[id]= 0.5*P*(M-Mt)/M;
+			h[id]= 0.5*(M+Mt);
+			i[id]=-0.5*(M-Mt);
+		}
+		e[id]=b[id]*acc;
+		e[id+N]=b[id]*acc*c[id];
+		e[id+N*2]=b[id]*acc*(CP*d[id]+0.5*c[id]*c[id]);
 	}
 	__syncthreads();
-	if( i > 0 && i < N - 1 ){
-		FL1 = f[ i - 1         ]+e[ i             ];
-		FR1 = f[ i             ]+e[ i + 1         ];
-		FL2 = f[ i - 1 + N     ]+e[ i     + N     ];
-		FR2 = f[ i     + N     ]+e[ i + 1 + N     ];
-		FL3 = f[ i - 1 + N * 2 ]+e[ i     + N * 2 ];
-		FR3 = f[ i     + N * 2 ]+e[ i + 1 + N * 2 ];
-		a[ i         ] = a[ i         ] - Z*(FR1-FL1);
-		a[ i + N     ] = a[ i + N     ] - Z*(FR2-FL2);
-		a[ i + N * 2 ] = a[ i + N * 2 ] - Z*(FR3-FL3);
+	if(id>1&&id<N-1){
+		Mt=h[id-1]+i[id];
+		FL[0]=Mt*(e[id-1    ]+e[id    ])*0.5-fabs(Mt)*(e[id    ]-e[id-1    ])*0.5;
+		FL[1]=Mt*(e[id-1+N  ]+e[id+N  ])*0.5-fabs(Mt)*(e[id+N  ]-e[id-1+N  ])*0.5+(f[id-1]+g[id]);
+		FL[2]=Mt*(e[id-1+N*2]+e[id+N*2])*0.5-fabs(Mt)*(e[id+N*2]-e[id-1+N*2])*0.5;
+		Mt=h[id]+i[id+1];
+		FR[0]=Mt*(e[id    ]+e[id+1    ])*0.5-fabs(Mt)*(e[id+1    ]-e[id    ])*0.5;
+		FR[1]=Mt*(e[id+N  ]+e[id+1+N  ])*0.5-fabs(Mt)*(e[id+1+N  ]-e[id+N  ])*0.5+(f[id]+g[id+1]);
+		FR[2]=Mt*(e[id+N*2]+e[id+1+N*2])*0.5-fabs(Mt)*(e[id+1+N*2]-e[id+N*2])*0.5;
+		a[id    ]-=Z*(FR[0]-FL[0]);
+		a[id+N  ]-=Z*(FR[1]-FL[1]);
+		a[id+N*2]-=Z*(FR[2]-FL[2]);
 	}
 	__syncthreads();
-	if( i == 0 ){
-		a[ i         ] =  a[ i + 1         ];
-		a[ i + N     ] = -a[ i + 1 + N     ];
-		a[ i + N * 2 ] =  a[ i + 1 + N * 2 ];
+	if( id == 0 ){
+		a[ id         ] =  a[ id + 1         ];
+		a[ id + N     ] = -a[ id + 1 + N     ];
+		a[ id + N * 2 ] =  a[ id + 1 + N * 2 ];
 	}
-	if( i == N - 1 ){	
-		a[ i         ] =  a[ i - 1         ];
-		a[ i + N     ] = -a[ i - 1 + N     ];
-		a[ i + N * 2 ] =  a[ i - 1 + N * 2 ];
+	if( id == N - 1 ){	
+		a[ id         ] =  a[ id - 1         ];
+		a[ id + N     ] = -a[ id - 1 + N     ];
+		a[ id + N * 2 ] =  a[ id - 1 + N * 2 ];
 	}
 	__syncthreads();
-	if( i < N ){	
-		b[ i ] = a[ i ];
-		c[ i ] = a[ i + N ]/a[i];
-		d[ i ] = ( ( a[ i + N * 2 ]/a[ i ])-0.5*c[ i ]*c[ i ])/CV;
+	if( id < N ){	
+		b[ id ] = a[ id ];
+		c[ id ] = a[ id + N ]/a[id];
+		d[ id ] = ( ( a[ id + N * 2 ]/a[ id ])-0.5*c[ id ]*c[ id ])/CV;
 	}
 }
 
@@ -115,7 +128,7 @@ void Send_To_Host( float *h_a, float *h_b, float *h_c, float *h_d\
 }
 
 void Free( float **h_a, float **h_b, float **h_c, float **h_d\
-	 , float **d_a, float **d_b, float **d_c, float **d_d, float **d_e, float **d_f ){
+	 , float **d_a, float **d_b, float **d_c, float **d_d, float **d_e, float **d_f, float **d_g, float **d_h, float **d_i ){
 	cudaError_t Error;
 	printf( "Free memory...\n" );
 	free( *h_a );
@@ -134,4 +147,10 @@ void Free( float **h_a, float **h_b, float **h_c, float **h_d\
 	if(DEBUG) printf( "CUDA Error cudaFree( d_e ) = %s\n", cudaGetErrorString( Error ) );
 	Error = cudaFree( *d_f );
 	if(DEBUG) printf( "CUDA Error cudaFree( d_f ) = %s\n", cudaGetErrorString( Error ) );
+	Error = cudaFree( *d_g );
+	if(DEBUG) printf( "CUDA Error cudaFree( d_g ) = %s\n", cudaGetErrorString( Error ) );
+	Error = cudaFree( *d_h );
+	if(DEBUG) printf( "CUDA Error cudaFree( d_h ) = %s\n", cudaGetErrorString( Error ) );
+	Error = cudaFree( *d_i );
+	if(DEBUG) printf( "CUDA Error cudaFree( d_i ) = %s\n", cudaGetErrorString( Error ) );
 }

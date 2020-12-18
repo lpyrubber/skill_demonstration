@@ -15,7 +15,7 @@ __kernel void GPU_Calc(
                		__global float *H, 
                 	__global float *I)
 {
-    int i=get_global_id( 0 );
+    	int i=get_global_id( 0 );
 	float a, M, Mt, P;
 	float FL[3], FR[3];
     	if(i<N){

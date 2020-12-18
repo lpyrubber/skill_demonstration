@@ -17,11 +17,11 @@
 #define DEBUG 0
 
 void Allocate_Memory( float **h_a, float **h_b, float **h_c, float **h_d\
-		    , float **d_a, float **d_b, float **d_c, float **d_d, float **d_e, float **d_f );
+		    , float **d_a, float **d_b, float **d_c, float **d_d, float **d_e, float **d_f, float **d_g, float **d_h, float **d_i );
 void Send_To_Device( float *h_a, float *h_b, float *h_c, float *h_d\
 		   , float *d_a, float *d_b, float *d_c, float *d_d);
-void GPU_Compute( float *d_a, float *d_b, float *d_c, float *d_d, float *d_e, float *d_f );
+void GPU_Compute( float *d_a, float *d_b, float *d_c, float *d_d, float *d_e, float *d_f, float *d_g, float *d_h, float *d_i );
 void Send_To_Host( float *h_a, float *h_b, float *h_c, float *h_d\
 		 , float *d_a, float *d_b, float *d_c, float *d_d);
 void Free( float **h_a, float **h_b, float **h_c, float **h_d\
-	 , float **d_a, float **d_b, float **d_c, float **d_d, float **d_e, float **d_f );
+	 , float **d_a, float **d_b, float **d_c, float **d_d, float **d_e, float **d_f, float **d_g, float **d_h, float **d_i );

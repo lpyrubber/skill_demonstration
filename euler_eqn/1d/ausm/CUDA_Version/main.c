@@ -5,21 +5,21 @@ void Save_Result( float *a, float *b, float *c, float *d);
 
 int main(){
 	float *h_u, *h_rho, *h_v, *h_T;
-	float *d_u, *d_rho, *d_v, *d_T, *d_fm, *d_fp;
+	float *d_u, *d_rho, *d_v, *d_T, *d_F, *d_PL, *d_PR, *d_ML, *d_MR;
 	int i;
 	Allocate_Memory( &h_u, &h_rho, &h_v, &h_T\
-		       , &d_u, &d_rho, &d_v, &d_T, &d_fm, &d_fp );
+		       , &d_u, &d_rho, &d_v, &d_T, &d_F, &d_PL, &d_PR, &d_ML, &d_MR );
 	Initiate( h_u, h_rho, h_v, h_T );
 	Send_To_Device( h_u, h_rho, h_v, h_T\
 		      , d_u, d_rho, d_v, d_T );
 	for( i = 0 ; i < NO_STEP ; ++i ){
-		GPU_Compute( d_u, d_rho, d_v, d_T, d_fm, d_fp );
+		GPU_Compute( d_u, d_rho, d_v, d_T, d_F, d_PL, d_PR, d_ML, d_MR );
 	}
 	Send_To_Host( h_u, h_rho, h_v, h_T\
 		    , d_u, d_rho, d_v, d_T );
 	Save_Result( h_u, h_rho, h_v, h_T );
 	Free( &h_u, &h_rho, &h_v, &h_T\
-	    , &d_u, &d_rho, &d_v, &d_T, &d_fm, &d_fp );
+	    , &d_u, &d_rho, &d_v, &d_T, &d_F, &d_PL, &d_PR, &d_ML, &d_MR );
 	return 8;
 }
 
