@@ -26,6 +26,6 @@
 #define FINAL  1
 
 //preclaim function
-void Allocate_Memory( int id , int max , float **a , float **b , float **c , float **d , float **e , float **f);
-void Compute( int id , int ele , float *a , float *b , float *c , float *d , float *e , float *f);
-void Free_Memory( float **a , float **b , float **c , float **d , float **e , float **f);
+void Allocate_Memory( int id , int max , float **a , float **b , float **c , float **d , float **e , float **f , float **g , float **h , float **i);
+void Compute( int id , int ele , float *a , float *b , float *c , float *d , float *e , float *f , float *g , float *h , float *i);
+void Free_Memory( float **a , float **b , float **c , float **d , float **e , float **f , float **g , float **h , float **i);

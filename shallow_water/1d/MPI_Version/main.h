@@ -16,7 +16,7 @@
 #define DEBUG   1
 
 //define constant value for MPI
-#define NONE   0
+#define NONE   -1
 #define MASTER 0
 #define LEFT   1
 #define RIGHT  0

@@ -17,14 +17,14 @@ int main( int argc , char *argv[] ){
 	int taskid , numtask , left , right , offset , rows \
 	  , i      , j       , k;
 	//set up array variable by pointer
-	float *u , *rho , *v , *T , *fm , *fp;
+	float *u , *rho , *v , *T , *f , *PL , *PR , *ML , *MR;
 	//get variable value from MPI
 	MPI_Comm_size( MPI_COMM_WORLD , &numtask );
 	MPI_Comm_rank( MPI_COMM_WORLD , &taskid );
 	//print debug message
 	if( DEBUG ) printf( "num of task = %d , task id = %d\n" , numtask , taskid );
 	//allocate memory
-	Allocate_Memory( taskid , numtask , &u , &rho , &v , &T , &fm , &fp );
+	Allocate_Memory( taskid , numtask , &u , &rho , &v , &T , &f , &PL , &PR , &ML , &MR );
 	//only master core do the initialization
 	if( taskid == MASTER ) Initial(u, rho , v , T );
 	//distribute value to each core
@@ -36,14 +36,14 @@ int main( int argc , char *argv[] ){
 		//exchange boundary value between each core for each step
 		Communicate( taskid , numtask , rows , right , left \
 			   , u , rho , v , T );
-		Compute( taskid , rows , u , rho , v , T , fm , fp );
+		Compute( taskid , rows , u , rho , v , T , f , PL , PR , ML , MR );
 	}
 	//sent all the value back to master
 	Sent_To_Master( taskid , numtask , rows , u , rho , v , T );
 	//master save & print the result
 	if( taskid == MASTER ) Save_Result(rho, v , T );
 	//clear the dynamic memory
-	Free_Memory( &u , &rho , &v , &T , &fm , &fp );
+	Free_Memory( &u , &rho , &v , &T , &f , &PL , &PR , &ML , &MR );
 	//close MPI
 	MPI_Finalize();
 }
