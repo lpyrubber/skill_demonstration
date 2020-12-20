@@ -12,7 +12,7 @@
 #define DX      (L/N)
 #define DT      (0.01*DX)
 #define Z       (DT/DX)
-#define NO_STEP 3200 
+#define NO_STEP 320000 
 #define R       1.0
 #define gamma   ( 7.0 / 5.0 )
 #define CV      ( R / ( gamma - 1 ) )
@@ -20,7 +20,7 @@
 
 #define DEVICE     1
 #define PLATFORM   0
-#define LOCAL      256
+#define LOCAL      64
 #define GLOBAL     (((N+LOCAL-1)/LOCAL)*LOCAL)
 
 #define CaseReturnString(x) case x: return #x;

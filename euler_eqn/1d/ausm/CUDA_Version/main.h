@@ -2,11 +2,11 @@
 #include <stdlib.h>
 
 #define L 1.0
-#define N 200
+#define N 20000
 #define DX (L/N)
 #define DT (0.01*DX)
 #define Z (DT/DX)
-#define NO_STEP 3200
+#define NO_STEP 320000
 #define R 1.0
 #define gamma 1.4
 #define CV (R/(gamma-1))
