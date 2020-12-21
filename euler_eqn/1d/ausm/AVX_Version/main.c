@@ -114,7 +114,6 @@ void Compute(){
 	AVX_sign    = _mm256_set1_ps( -0.0f );
 	AVX_Z       = _mm256_set1_ps( Z );
 
-
 	for(i = 0 ; i < NS ; i++){
 		// a = sqrt( gamma* R * T[i] );
 		AVX_t1 = _mm256_mul_ps( AVX_gamma , AVX_R );
@@ -154,7 +153,7 @@ void Compute(){
 		AVX_t6 = _mm256_mul_ps( AVX_P , AVX_t6 );
 		AVX_t6 = _mm256_mul_ps( AVX_quarter , AVX_t6 ); 
 		//PL = ( Mt > 1 ) ? t5 : t6
-		AVX_PL[i] = _mm256_blendv_ps( AVX_t5 , AVX_t6 , AVX_bit);	
+		AVX_PL[i] = _mm256_blendv_ps( AVX_t6 , AVX_t5 , AVX_bit);	
 		
 		//t5 = 0.5*P*t4/M;
 		AVX_t5 = _mm256_div_ps( AVX_t4 , AVX_M );
@@ -166,23 +165,23 @@ void Compute(){
 		AVX_t6 = _mm256_mul_ps( AVX_P , AVX_t6 );
 		AVX_t6 = _mm256_mul_ps( AVX_quarter , AVX_t6 ); 
 		//PR = ( Mt > 1 ) ? t5 : t6
-		AVX_PR[i] = _mm256_blendv_ps( AVX_t5 , AVX_t6 , AVX_bit);
+		AVX_PR[i] = _mm256_blendv_ps( AVX_t6 , AVX_t5 , AVX_bit);
 
-		//t5= 0.5*t3;
+		//t5 = 0.5*t3;
 		AVX_t5 = _mm256_mul_ps( AVX_half  , AVX_t3 );
 		//t6 = 0.25*t1;
 		AVX_t6 = _mm256_mul_ps( AVX_quarter , AVX_t1 );
 		//ML = ( Mt > 1 ) ? t5 : t6
-		AVX_ML[i] = _mm256_blendv_ps( AVX_t5 , AVX_t6 , AVX_bit);
+		AVX_ML[i] = _mm256_blendv_ps( AVX_t6 , AVX_t5 , AVX_bit);
 		
-		//t5= -0.5*t4;
+		//t5 = -0.5*t4;
 		AVX_cond = _mm256_set1_ps( -0.5 );
 		AVX_t5   = _mm256_mul_ps( AVX_cond  , AVX_t4 );
 		//t6 = -0.25*t2;
 		AVX_cond = _mm256_set1_ps( -0.25 );
 		AVX_t6   = _mm256_mul_ps( AVX_cond , AVX_t2 );
 		//ML = ( Mt > 1 ) ? t5 : t6
-		AVX_MR[i] = _mm256_blendv_ps( AVX_t5 , AVX_t6 , AVX_bit);
+		AVX_MR[i] = _mm256_blendv_ps( AVX_t6 , AVX_t5 , AVX_bit);
 		
 		//F1[i]=rho[i]*a;
 		AVX_f1[i] = _mm256_mul_ps( AVX_rho[i], AVX_a  );
@@ -197,6 +196,7 @@ void Compute(){
 		
 	}
 	for( i = 0 ; i < NS ; ++i ){
+
 		if( i == 0 ){
 			AVX_t1 = _mm256_set_ps( f1[6], f1[5], f1[4], f1[3]\
 					      , f1[2], f1[1], f1[0], 0);
@@ -250,31 +250,31 @@ void Compute(){
 		AVX_M =  _mm256_andnot_ps( AVX_sign , AVX_Mt );
 		
 		//FL1=Mt*(t1+f1[i])*0.5-M*(f1[i]-t1)*0.5;
-		AVX_a = _mm256_sub_ps( AVX_f1[i] , AVX_t1 );
-		AVX_a = _mm256_mul_ps( AVX_half , AVX_a );
-		AVX_a = _mm256_mul_ps( AVX_M , AVX_a );
+		AVX_a   = _mm256_sub_ps( AVX_f1[i] , AVX_t1 );
+		AVX_a   = _mm256_mul_ps( AVX_half , AVX_a );
+		AVX_a   = _mm256_mul_ps( AVX_M , AVX_a );
 		AVX_FL1 = _mm256_add_ps( AVX_f1[i] , AVX_t1 );
-		AVX_FL1 - _mm256_mul_ps( AVX_FL1 , AVX_half );
+		AVX_FL1 = _mm256_mul_ps( AVX_FL1 , AVX_half );
 		AVX_FL1 = _mm256_mul_ps( AVX_FL1 , AVX_Mt );
 		AVX_FL1 = _mm256_sub_ps( AVX_FL1 , AVX_a );
 		
 		//FL2=Mt*(t3+f2[i])*0.5-M*(f2[i]-t3)*0.5+(t9+PR[i]);
-		AVX_a = _mm256_sub_ps( AVX_f2[i] , AVX_t3 );
-		AVX_a = _mm256_mul_ps( AVX_half , AVX_a );
-		AVX_a = _mm256_mul_ps( AVX_M , AVX_a );
-		AVX_P = _mm256_mul_ps( AVX_t9 , AVX_PR[i] );
+		AVX_a   = _mm256_sub_ps( AVX_f2[i] , AVX_t3 );
+		AVX_a   = _mm256_mul_ps( AVX_half , AVX_a );
+		AVX_a   = _mm256_mul_ps( AVX_M , AVX_a );
+		AVX_P   = _mm256_add_ps( AVX_t9 , AVX_PR[i] );
 		AVX_FL2 = _mm256_add_ps( AVX_f2[i] , AVX_t3 );
-		AVX_FL2 - _mm256_mul_ps( AVX_FL2 , AVX_half );
+		AVX_FL2 = _mm256_mul_ps( AVX_FL2 , AVX_half );
 		AVX_FL2 = _mm256_mul_ps( AVX_FL2 , AVX_Mt );
 		AVX_FL2 = _mm256_sub_ps( AVX_FL2 , AVX_a );
-		AVX_FL2 = _mm256_sub_ps( AVX_FL2 , AVX_P );
+		AVX_FL2 = _mm256_add_ps( AVX_FL2 , AVX_P );
 		
 		//FL3=Mt*(t5+f3[i])*0.5-M*(f3[i]-t5)*0.5;
-		AVX_a = _mm256_sub_ps( AVX_f3[i] , AVX_t5 );
-		AVX_a = _mm256_mul_ps( AVX_half , AVX_a );
-		AVX_a = _mm256_mul_ps( AVX_M , AVX_a );
+		AVX_a   = _mm256_sub_ps( AVX_f3[i] , AVX_t5 );
+		AVX_a   = _mm256_mul_ps( AVX_half , AVX_a );
+		AVX_a   = _mm256_mul_ps( AVX_M , AVX_a );
 		AVX_FL3 = _mm256_add_ps( AVX_f3[i] , AVX_t5 );
-		AVX_FL3 - _mm256_mul_ps( AVX_FL3 , AVX_half );
+		AVX_FL3 = _mm256_mul_ps( AVX_FL3 , AVX_half );
 		AVX_FL3 = _mm256_mul_ps( AVX_FL3 , AVX_Mt );
 		AVX_FL3 = _mm256_sub_ps( AVX_FL3 , AVX_a );
 		
@@ -284,34 +284,36 @@ void Compute(){
 		AVX_M =  _mm256_andnot_ps( AVX_sign , AVX_Mt );
 		
 		//FR1=Mt*(f1[i]+t2)*0.5-fabs(Mt)*(t2-f1[i])*0.5;
-		AVX_a = _mm256_sub_ps( AVX_f1[i] , AVX_t2 );
-		AVX_a = _mm256_mul_ps( AVX_half , AVX_a );
-		AVX_a = _mm256_mul_ps( AVX_M , AVX_a );
+		AVX_a   = _mm256_sub_ps( AVX_t2 , AVX_f1[i] );
+		AVX_a   = _mm256_mul_ps( AVX_half , AVX_a );
+		AVX_a   = _mm256_mul_ps( AVX_M , AVX_a );
 		AVX_FR1 = _mm256_add_ps( AVX_t2 , AVX_f1[i] );
-		AVX_FR1 - _mm256_mul_ps( AVX_FR1 , AVX_half );
+		AVX_FR1 = _mm256_mul_ps( AVX_FR1 , AVX_half );
 		AVX_FR1 = _mm256_mul_ps( AVX_FR1 , AVX_Mt );
 		AVX_FR1 = _mm256_sub_ps( AVX_FR1 , AVX_a );
 
 		//FR2=Mt*(f2[i]+t4)*0.5-fabs(Mt)*(t4-f2[i])*0.5+(PL[i]+t10);;
-		AVX_a = _mm256_sub_ps( AVX_f2[i] , AVX_t4 );
-		AVX_a = _mm256_mul_ps( AVX_half , AVX_a );
-		AVX_a = _mm256_mul_ps( AVX_M , AVX_a );
-		AVX_P = _mm256_mul_ps( AVX_PL[i] , AVX_t10 );
+		AVX_a   = _mm256_sub_ps( AVX_t4 , AVX_f2[i] );
+		AVX_a   = _mm256_mul_ps( AVX_half , AVX_a );
+		AVX_a   = _mm256_mul_ps( AVX_M , AVX_a );
+		AVX_P   = _mm256_add_ps( AVX_PL[i] , AVX_t10 );
 		AVX_FR2 = _mm256_add_ps( AVX_t4 , AVX_f2[i] );
-		AVX_FR2 - _mm256_mul_ps( AVX_FR2 , AVX_half );
+		AVX_FR2 = _mm256_mul_ps( AVX_FR2 , AVX_half );
 		AVX_FR2 = _mm256_mul_ps( AVX_FR2 , AVX_Mt );
 		AVX_FR2 = _mm256_sub_ps( AVX_FR2 , AVX_a );
-		AVX_FR3 = _mm256_sub_ps( AVX_FR2 , AVX_P );
+		AVX_FR2 = _mm256_add_ps( AVX_FR2 , AVX_P );
 
 		//FR3=Mt*(f3[i]+t6)*0.5-fabs(Mt)*(t6-f3[i])*0.5;
-		AVX_a = _mm256_sub_ps( AVX_f3[i] , AVX_t6 );
-		AVX_a = _mm256_mul_ps( AVX_half , AVX_a );
-		AVX_a = _mm256_mul_ps( AVX_M , AVX_a );
+		AVX_a   = _mm256_sub_ps( AVX_t6 , AVX_f3[i] );
+		AVX_a   = _mm256_mul_ps( AVX_half , AVX_a );
+		AVX_a   = _mm256_mul_ps( AVX_M , AVX_a );
 		AVX_FR3 = _mm256_add_ps( AVX_t6 , AVX_f3[i] );
-		AVX_FR3 - _mm256_mul_ps( AVX_FR3 , AVX_half );
+		AVX_FR3 = _mm256_mul_ps( AVX_FR3 , AVX_half );
 		AVX_FR3 = _mm256_mul_ps( AVX_FR3 , AVX_Mt );
 		AVX_FR3 = _mm256_sub_ps( AVX_FR3 , AVX_a );
-		
+	
+
+
 		//u1[i]=u1[i]-Z*(FR1-FL1)
 		AVX_t1    = _mm256_sub_ps( AVX_FR1 , AVX_FL1 );
 		AVX_t1    = _mm256_mul_ps( AVX_Z , AVX_t1 );
@@ -331,7 +333,7 @@ void Compute(){
 	u1[N+1] =  u1[N];
 	u2[N+1] = -u2[N];
 	u3[N+1] =  u3[N];
-	
+		
 	//cond=-0.5
 	AVX_cond = _mm256_set1_ps( -0.5 );
 	for( i = 0 ; i < NS ; ++i ){
@@ -346,6 +348,7 @@ void Compute(){
 		AVX_t2   = _mm256_add_ps( AVX_t1 , AVX_t2 );
 		AVX_T[i] = _mm256_div_ps( AVX_t2 , AVX_CV );
 	}
+
 }
 
 void Save_Result(){
@@ -354,7 +357,7 @@ void Save_Result(){
 		printf("File open failed\n");
 	}else{
 		for(i=1; i<N+1; i++){
-			fprintf(pFile, "%e %e %e %e\n",i*DX, rho[i], v[i], T[i]);
+			fprintf(pFile, "%f %f %f %f\n",i*DX, rho[i], v[i], T[i]);
 		}
 	}
 }
