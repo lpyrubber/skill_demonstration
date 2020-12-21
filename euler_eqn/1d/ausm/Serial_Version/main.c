@@ -89,6 +89,7 @@ void Compute(){
 		F[i]=rho[i]*a;
 		F[i+N]=rho[i]*a*u[i];
 		F[i+N*2]=rho[i]*a*(CP*T[i]+0.5*u[i]*u[i]);
+//		printf("%f %f %f\n", F[i] , F[i+N] , F[i+N*2] );
 	}
 	for(i=1; i<N-1; ++i){
 		Mt=ML[i-1]+MR[i];
