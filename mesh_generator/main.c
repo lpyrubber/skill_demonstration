@@ -4,7 +4,11 @@
 
 // one for yes, zero for no
 #define UNIFORM 1
-#define D 0.08
+#define Np 150
+#define D 1.7*(0.75/M_PI/Np)
+//#define Nb ((int)(0.5/D)*4)
+#define Nb 12
+#define dx (1.0/Nb)
 
 // model for fem
 // _________
@@ -19,58 +23,54 @@
 //
 
 int main(){
-	int i , np = 100, j;
+	int i , np = Np, j, k;
 	tlist list;
 	point *p;
 	bool flag;
-	int *ind;
-	FILE *fp1, *fp2;
-	float d;
+	FILE *fp1, *fp2, *fp3;
+	float d, cx, cy;
 	p = ( point* )malloc( np * sizeof(point) );
-	ind = ( int* )malloc( 3*np*sizeof(point) );
 	srand(time(NULL));
-	p[0].x=0.0;
-	p[0].y=0.0;
-	p[1].x=1.0;
-	p[1].y=0.0;
-	p[2].x=0.0;
-	p[2].y=1.0;
-	p[3].x=1.0;
-	p[3].y=1.0;
-	p[4].x=0.5;
-	p[4].y=0.0;
-	p[5].x=0.0;
-	p[5].y=0.5;
-	p[6].x=1.0;
-	p[6].y=0.5;
-	p[7].x=0.5;
-	p[7].y=1.0;
-	p[8].x=0.25;
-	p[8].y=0.0;
-	p[9].x=0.0;
-	p[9].y=0.25;
-	p[10].x=0.75;
-	p[10].y=0.0;
-	p[11].x=0.75;
-	p[11].y=0.0;
-	p[12].x=1.0;
-	p[12].y=0.25;
-	p[13].x=.25;
-	p[13].y=1.0;
-	p[14].x=1.0;
-	p[14].y=0.75;
-	p[15].x=0.75;
-	p[15].y=1.0;
+	p[0].x=0.0;   p[0].y=0.0;
+	p[1].x=1.0;   p[1].y=0.0;
+	p[2].x=0.0;   p[2].y=1.0;
+	p[3].x=0.5;   p[3].y=0.5;
+	p[4].x=0.5;   p[4].y=0.0;
+	p[5].x=0.5;   p[5].y=1.0;
+	p[6].x=1.0;   p[6].y=0.5;
+	i=7;
 
-	for(i=15; i<np; i++){
+	for(j=1; j<Nb; j++){
+		p[i].x = dx*j; p[i].y=0.0;
+		i++;
+		p[i].x = 0.0;    p[i].y=dx*j;
+		i++;
+	}
+	for(j=1; j<0.5*Nb; j++){
+		p[i].x = dx*j; p[i].y=1.0;
+		i++;
+		p[i].x = 1.0;      p[i].y=dx*j;
+		i++;
+	}
+	for(j=1; j<0.5*Nb; j++){
+		p[i].x = dx*j+0.5; p[i].y=0.5;
+		i++;
+		p[i].x = 0.5;        p[i].y=dx*j+0.5;
+		i++;
+	}
+
+	for(; i<np; i++){
 		if(UNIFORM){
 			flag=1;
 			while(flag){
 				p[i].x=(float)rand()/RAND_MAX;
 				p[i].y=(float)rand()/RAND_MAX;
 				for(j=0; j<i; j++){
+					if(p[i].x>=0.5&&p[i].y>=0.5){
+						break;
+					}
 					d=(p[i].x-p[j].x)*(p[i].x-p[j].x)+(p[i].y-p[j].y)*(p[i].y-p[j].y);
-					if(d<D*D){
+					if(d<D){
 						break;
 					}
 				}
@@ -84,25 +84,50 @@ int main(){
 			p[i].y=(float)rand()/RAND_MAX;
 		}
 	}
+	fp1 = fopen("point.txt","w");
 	for(i=0; i<np; i++){
-		printf("%f %f\n",p[i].x, p[i].y);
+		fprintf(fp1, "%f %f\n",p[i].x, p[i].y);
 	}
+	fclose(fp1);
+
 	tlistinit(&list);
 	BowyerWatson( &list , p , np );
+	for(i=list.total; i>=0;--i){
+		cx=(list.item[i].a.x+list.item[i].b.x+list.item[i].c.x)/3;	
+		cy=(list.item[i].a.y+list.item[i].b.y+list.item[i].c.y)/3;
+		if(cx>0.5&&cy>0.5){
+			tlistdelete( &list, i );
+		}
+	}
 	printf("total=%d\n",list.total);
 	fp1 = fopen("triangle_x.txt", "w");
 	fp2 = fopen("triangle_y.txt", "w");
+	fp3 = fopen("tri_index.txt", "w");
 	for(i=0; i<list.total; i++){
 		fprintf(fp1, "%f ",list.item[i].a.x);	
 		fprintf(fp1, "%f ",list.item[i].b.x);	
 		fprintf(fp1, "%f\n",list.item[i].c.x);;
 		fprintf(fp2, "%f ",list.item[i].a.y);	
 		fprintf(fp2, "%f ",list.item[i].b.y);	
-		fprintf(fp2, "%f\n",list.item[i].c.y);	
+		fprintf(fp2, "%f\n",list.item[i].c.y);
+		for(j=0; j<np; j++){
+			if((p[j].x==list.item[i].a.x)&&(p[j].y==list.item[i].a.y)){
+				fprintf(fp3,"%d ",j);
+			}
+		}
+		for(j=0; j<np; j++){
+			if((p[j].x==list.item[i].b.x)&&(p[j].y==list.item[i].b.y)){
+				fprintf(fp3,"%d ",j);
+			}
+		}
+		for(j=0; j<np; j++){
+			if((p[j].x==list.item[i].c.x)&&(p[j].y==list.item[i].c.y)){
+				fprintf(fp3,"%d\n",j);
+			}
+		}
 	}
 	fclose(fp1);
 	fclose(fp2);
-	free(ind);
 	free(p);
 	tlistfree(&list);
 }
