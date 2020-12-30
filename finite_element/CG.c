@@ -38,7 +38,7 @@ void Conjugate_Gradient( float *A , float *b, float *x , int N){
 			r[ i ] -= alpha * s[ i ];
 			rs_new += r[ i ] * r[ i ];
 		}
-		if( rs_new  < 1e-6 ){
+		if( sqrt(rs_new)  < 1e-6 ){
 			flag = 0;
 			printf("k=%d\n", k);
 		}

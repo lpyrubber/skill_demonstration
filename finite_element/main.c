@@ -3,8 +3,8 @@
 int main(){
 	float *x, *y, *Fx, *Fy, *K;
 	float *Kr, *Fr, *U, *u;
-	float *S;
-	int np, ne, nr, i;
+	float *S, scale = 1000;
+	int np, ne, nr, i, j;
 	int *tri;
 	char *Fix_x, *Fix_y;
 	Count_Number( &np, &ne );
@@ -12,13 +12,19 @@ int main(){
 	Initial( np, ne, Fix_x, Fix_y, tri, x, y, Fx, Fy);
 	Calculate_K(np, ne, tri, x, y, K);
 	Partition_K_F( np, &nr , Fix_x, Fix_y , Fx, Fy, Fr , K , Kr);
-//	Conjugate_Gradient(Kr, Fr, u, nr);
-//	Partition_U(np, nr, Fix_x , Fix_y , u, U);
-//	for( i = 0 ; i < ne ; ++i ){
-//		U_local();
-//		Calc_Stress();
-//	}
-	Save_Result(np ,  K);
+	Conjugate_Gradient(Kr, Fr, u, nr);
+	printf("nr = %d\n",nr);
+	for(i=0; i<nr; i++){
+		printf("%e %e\n", Fr[i], u[i]);
+	}
+
+	Partition_U(np, nr, Fix_x , Fix_y , u, U);
+	scale=10000;
+	for( i = 0 ; i < np ; ++i ){
+		x[i]+=scale*U[2*i];
+		y[i]+=scale*U[2*i+1];
+	}
+	Save_Result( np, ne , tri,  x , y);
 	Free_Memory( &Fix_x, &Fix_y, &tri, &x, &y, &Fx, &Fy, &K, &Kr, &Fr, &u, &U, &S );
 	return 0;
 	
@@ -29,7 +35,7 @@ void Count_Number(int *np, int *ne){
 	char buffer[256];
 	FILE *fp;
 	*np = 0;
-/*	fp = fopen("point.txt", "r");
+	fp = fopen("point.txt", "r");
 	while(fgets(buffer, 256, fp) != NULL){
 		*np = *np + 1;
 	}
@@ -40,9 +46,9 @@ void Count_Number(int *np, int *ne){
 		*ne = *ne + 1;
 	}
 	fclose(fp);
-*/
-	*np = 11;
-	*ne = 12;
+
+//	*np = 11;
+//	*ne = 12;
 }
 
 
@@ -69,7 +75,7 @@ void Allocate_Memory(int np, int ne, char **Fix_x, char **Fix_y, int **tri \
 void Initial(int np, int ne, char *Fix_x, char *Fix_y, int *tri, float *x, float *y, float *Fx, float *Fy){
 	int i;
 	FILE *fp;
-/*	fp = fopen( "point.txt" , "r" );
+	fp = fopen( "point.txt" , "r" );
 	for( i = 0 ; i < np ; ++i ){
 		fscanf( fp, "%f %f\n", x + i , y + i );
 		if( x[ i ] == 0.0 ){
@@ -84,8 +90,8 @@ void Initial(int np, int ne, char *Fix_x, char *Fix_y, int *tri, float *x, float
 	}
 	fclose(fp);
 	Fy[ 3 ] = -12.5e3;
-*/
-	x[0]=0;
+
+/*	x[0]=0;
        	x[1]=0.25;
        	x[2]=0.125; 
 	x[3]=0; 
@@ -109,7 +115,7 @@ void Initial(int np, int ne, char *Fix_x, char *Fix_y, int *tri, float *x, float
 	y[9]=0.25; 
 	y[10]=0;
 
-	Fy[5]=-1.25e3;
+	Fy[4]=-12.5e3;
 	Fix_x[0]=1;
 	Fix_x[3]=1;
 	Fix_x[6]=1;
@@ -142,6 +148,7 @@ void Initial(int np, int ne, char *Fix_x, char *Fix_y, int *tri, float *x, float
 	tri[30]=7 ;tri[31]=10 ;tri[32]=8 ;
 	//ele(12,:) = [9, 11, 10];
 	tri[33]=8 ;tri[34]=10 ;tri[35]=9 ;
+*/
 }
 
 void Calculate_K(int np, int ne, int *tri, float *x, float *y, float *K){
@@ -158,7 +165,7 @@ void Calculate_K(int np, int ne, int *tri, float *x, float *y, float *K){
 
 	D[ 6 ] = 0;
 	D[ 7 ] = 0;
-	D[ 8 ] = 0.5 * ( 1 - NU ) * E / ( 1 + NU * NU );
+	D[ 8 ] = 0.5 * ( 1 - NU ) * E / ( 1 - NU * NU );
 	
 	for( i = 0 ; i < ne ; ++i ){
 		//calculate local k
@@ -183,14 +190,14 @@ void Calculate_K(int np, int ne, int *tri, float *x, float *y, float *K){
 		B[ 13 ] =  0.5 / A * ( y[ tri[ 1 + i * 3 ] ] - y[ tri[ 2 + i * 3 ] ] );
 		B[ 14 ] = -0.5 / A * ( x[ tri[ 2 + i * 3 ] ] - x[ tri[   + i * 3 ] ] );
 		B[ 15 ] =  0.5 / A * ( y[ tri[ 2 + i * 3 ] ] - y[ tri[   + i * 3 ] ] );
-		B[ 16 ] = -0.5 / A * ( x[ tri[   + i * 3 ] ] - x[ tri[ 1 + i * 3 ] ] );
-		B[ 17 ] =  0.5 / A * ( y[ tri[   + i * 3 ] ] - y[ tri[ 1 + i * 3 ] ] );
+		B[ 16 ] = -0.5 / A * ( x[ tri[     i * 3 ] ] - x[ tri[ 1 + i * 3 ] ] );
+		B[ 17 ] =  0.5 / A * ( y[ tri[     i * 3 ] ] - y[ tri[ 1 + i * 3 ] ] );
 	
 		for( j = 0 ; j < 3 ; ++j ){
 			for( k = 0 ; k < 6 ; ++k ){
 				temp[ k + j * 6 ] = 0;
 				for( l = 0 ; l < 3 ; ++l ){
-					temp[ k + j * 6 ] += D[ l + j * 6 ] * B[ k + l * 6 ];
+					temp[ k + j * 6 ] += D[ l + j * 3 ] * B[ k + l * 6 ];
 				}
 			}
 		}
@@ -205,18 +212,17 @@ void Calculate_K(int np, int ne, int *tri, float *x, float *y, float *K){
 		}
 		for( j = 0 ; j < 36 ; ++j ){
 			kl[ j ] = kl[ j ] * A * THICK;
-			K[ j ] = kl[ j ];
 		}
 		//Add into global k
-/*		for( j = 0 ; j < 3 ; ++j ){
+		for( j = 0 ; j < 3 ; ++j ){
 			for( k = 0 ; k < 3 ; ++k ){
-				K[tri[k+i*3]*2  +(tri[j+i*3]  )*2*np ]+=kl[k*2  +j*6  ];
-				K[tri[k+i*3]*2+1+(tri[j+i*3]  )*2*np ]+=kl[k*2+1+j*6  ];
-				K[tri[k+i*3]*2  +(tri[j+i*3]+1)*2*np ]+=kl[k*2  +j*6+6];
-				K[tri[k+i*3]*2+1+(tri[j+i*3]+1)*2*np ]+=kl[k*2+1+j*6+6];
+				K[tri[k+i*3]*2  +(tri[j+i*3])*4*np     ]+=kl[k*2  +j*12  ];
+				K[tri[k+i*3]*2+1+(tri[j+i*3])*4*np     ]+=kl[k*2+1+j*12  ];
+				K[tri[k+i*3]*2  +(tri[j+i*3])*4*np+2*np]+=kl[k*2  +j*12+6];
+				K[tri[k+i*3]*2+1+(tri[j+i*3])*4*np+2*np]+=kl[k*2+1+j*12+6];
 			}
 		}
-*/	}
+	}
 }
 
 void Partition_K_F( int np, int *nr, char *Fix_x, char *Fix_y, float *Fx, float *Fy \
@@ -257,18 +263,17 @@ void Calc_Stress(){
 	
 }
 
-void Save_Result(int np, float *a){
-	FILE *fp;
+void Save_Result(int np, int ne, int *tri, float *a, float *b){
+	FILE *fp1, *fp2;
 	int i,j;
-	fp = fopen("data.txt", "w");
-	for(i = 0; i < 2*3; i++){
-	//	fprintf(fp,"%f %f",a[2*i], a[2*i+1]);
-		for(j=0; j< 2*3; j++){
-			fprintf(fp,"%e ", a[j+i*2*3]);
-		}
-		fprintf(fp,"\n");
+	fp1 = fopen("data_x.txt", "w");
+	fp2 = fopen("data_y.txt", "w");
+	for(i = 0; i < ne; i++){
+		fprintf(fp1,"%e %e %e\n", a[tri[3*i]], a[tri[1+3*i]], a[tri[2+3*i]]);	
+		fprintf(fp2,"%e %e %e\n", b[tri[3*i]], b[tri[1+3*i]], b[tri[2+3*i]]);
 	}
-	fclose(fp);
+	fclose(fp1);
+	fclose(fp2);
 }
 
 
@@ -283,6 +288,7 @@ void Partition_U(int np, int nr, char *Fix_x , char *Fix_y , float *u, float *U)
 		}else{
 			U[ig]=0.0;
 		}
+		printf("%f\n",U[ig]);
 		ig++;
 		if(Fix_y[i] == 0){
 			U[ig]=u[il];
@@ -290,6 +296,7 @@ void Partition_U(int np, int nr, char *Fix_x , char *Fix_y , float *u, float *U)
 		}else{
 			U[ig]=0.0;
 		}
+		printf("%f\n",U[ig]);
 		ig++;
 	}
 }
