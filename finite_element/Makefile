@@ -4,4 +4,5 @@ MAIN:
 	g++ main.c -c
 CG:
 	g++ CG.c -c
-
+clean:
+	rm *.o

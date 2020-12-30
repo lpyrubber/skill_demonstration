@@ -13,13 +13,8 @@ int main(){
 	Calculate_K(np, ne, tri, x, y, K);
 	Partition_K_F( np, &nr , Fix_x, Fix_y , Fx, Fy, Fr , K , Kr);
 	Conjugate_Gradient(Kr, Fr, u, nr);
-	printf("nr = %d\n",nr);
-	for(i=0; i<nr; i++){
-		printf("%e %e\n", Fr[i], u[i]);
-	}
-
 	Partition_U(np, nr, Fix_x , Fix_y , u, U);
-	scale=10000;
+	scale=1;
 	for( i = 0 ; i < np ; ++i ){
 		x[i]+=scale*U[2*i];
 		y[i]+=scale*U[2*i+1];
@@ -46,7 +41,6 @@ void Count_Number(int *np, int *ne){
 		*ne = *ne + 1;
 	}
 	fclose(fp);
-
 //	*np = 11;
 //	*ne = 12;
 }
@@ -65,7 +59,6 @@ void Allocate_Memory(int np, int ne, char **Fix_x, char **Fix_y, int **tri \
 	*K = ( float* )calloc( 4 * np * np , sizeof( float ) );
 	*Kr = ( float* )malloc( 4 * np * np * sizeof( float ) );
 	*Fr = ( float* )malloc( 2 * np * sizeof( float ) );
-
 	*u = ( float* )malloc( 2 * np * sizeof( float ) );
 	*U = ( float* )malloc( 2 * np * sizeof( float ) );
 	*S = ( float* )malloc( 2 * np * sizeof( float ) );
@@ -102,7 +95,6 @@ void Initial(int np, int ne, char *Fix_x, char *Fix_y, int *tri, float *x, float
 	x[8]=0.375; 
 	x[9]=0.5; 
 	x[10]=0.5;
-
 	y[0]=0.5; 
 	y[1]=0.5;
        	y[2]=0.375; 
@@ -114,16 +106,13 @@ void Initial(int np, int ne, char *Fix_x, char *Fix_y, int *tri, float *x, float
 	y[8]=0.125; 
 	y[9]=0.25; 
 	y[10]=0;
-
 	Fy[4]=-12.5e3;
 	Fix_x[0]=1;
 	Fix_x[3]=1;
 	Fix_x[6]=1;
-	
 	Fix_y[0]=1;
 	Fix_y[3]=1;
 	Fix_y[6]=1;
-
 	//ele(1,:) = [1, 3, 2];
 	tri[0]=0 ;tri[1]=2 ;tri[2]=1 ;
 	//ele(2,:) = [1, 4, 3];
@@ -288,7 +277,6 @@ void Partition_U(int np, int nr, char *Fix_x , char *Fix_y , float *u, float *U)
 		}else{
 			U[ig]=0.0;
 		}
-		printf("%f\n",U[ig]);
 		ig++;
 		if(Fix_y[i] == 0){
 			U[ig]=u[il];
@@ -296,7 +284,6 @@ void Partition_U(int np, int nr, char *Fix_x , char *Fix_y , float *u, float *U)
 		}else{
 			U[ig]=0.0;
 		}
-		printf("%f\n",U[ig]);
 		ig++;
 	}
 }
