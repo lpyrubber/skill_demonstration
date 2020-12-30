@@ -29,16 +29,16 @@ int main(){
 	bool flag;
 	FILE *fp1, *fp2, *fp3;
 	float d, cx, cy;
+	int count;
 	p = ( point* )malloc( np * sizeof(point) );
 	srand(time(NULL));
 	p[0].x=0.0;   p[0].y=0.0;
 	p[1].x=1.0;   p[1].y=0.0;
 	p[2].x=0.0;   p[2].y=1.0;
 	p[3].x=0.5;   p[3].y=0.5;
-	p[4].x=0.5;   p[4].y=0.0;
-	p[5].x=0.5;   p[5].y=1.0;
-	p[6].x=1.0;   p[6].y=0.5;
-	i=7;
+	p[4].x=0.5;   p[4].y=1.0;
+	p[5].x=1.0;   p[5].y=0.5;
+	i=6;
 
 	for(j=1; j<Nb; j++){
 		p[i].x = dx*j; p[i].y=0.0;
@@ -110,19 +110,23 @@ int main(){
 		fprintf(fp2, "%f ",list.item[i].a.y);	
 		fprintf(fp2, "%f ",list.item[i].b.y);	
 		fprintf(fp2, "%f\n",list.item[i].c.y);
+		count = 0;
 		for(j=0; j<np; j++){
 			if((p[j].x==list.item[i].a.x)&&(p[j].y==list.item[i].a.y)){
 				fprintf(fp3,"%d ",j);
+				count++;
 			}
 		}
 		for(j=0; j<np; j++){
 			if((p[j].x==list.item[i].b.x)&&(p[j].y==list.item[i].b.y)){
 				fprintf(fp3,"%d ",j);
+				count++;
 			}
 		}
 		for(j=0; j<np; j++){
 			if((p[j].x==list.item[i].c.x)&&(p[j].y==list.item[i].c.y)){
 				fprintf(fp3,"%d\n",j);
+				count++;
 			}
 		}
 	}
