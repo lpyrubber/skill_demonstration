@@ -23,7 +23,8 @@ int main(){
 		GPU_Update_R(d_r, d_s, d_t, d_scalar, N);
 		GPU_VV_Dot(d_r, d_r, d_temp, d_scalar+6, N);
 		GPU_Update_temp(&temp, d_scalar+6);
-		if(sqrt(temp)<ERROR){
+		printf("Error = %e \n", temp);
+		if(sqrt(temp) < ERROR){
 			printf("break at %d\n",i);
 			break;
 		}

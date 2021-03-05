@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <math.h>
-#define NO_STEPS 1e9
-#define TPB 256
-#define N 1000
+#define NO_STEPS 1
+#define TPB 32
+#define N 64
 #define L 1.0
 #define dx (L/N)
 #define DEBUG 0

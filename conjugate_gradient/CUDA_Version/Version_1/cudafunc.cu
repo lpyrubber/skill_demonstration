@@ -30,7 +30,7 @@ __global__ void GPUDOT(float *d_a, float *d_b, float *d_c, int ele){
 		d_c[0] = sum;
 	}else if(i == 1){
 		float sum = 0.0;
-		for(int i1 = 0 ; i1 < gridDim.x; i1 += 2){
+		for(int i1 = 1 ; i1 < gridDim.x; i1 += 2){
 			sum += d_c[i1];
 		}
 		d_c[1] = sum;
@@ -213,9 +213,9 @@ void Initial(float *h_a, float *h_b, float *h_c){
 			h_c[j]=(j==0||j==N-1)?0:1*dx*dx;
 			if(i==j){
 				h_a[i+N*j]=2.0;
-			}else if((j==i-1)&&(j>0)){
+			}else if((j==i-1)&&(j>0)&&(j<N-1)){
 				h_a[i+N*j]=-1.0;
-			}else if((j==i+1)&&(j<N-1)){
+			}else if((j==i+1)&&(j>0)&&(j<N-1)){
 				h_a[i+N*j]=-1.0;
 			}else{
 				h_a[i+N*j]=0;

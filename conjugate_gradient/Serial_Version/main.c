@@ -52,14 +52,14 @@ void Conjugate_Gradient( float *A , float *b, float *x ){
 	for( j = 0 ; j < N ; ++j ){
 		r[ j ] = b[ j ];
 		for( i = 0 ; i < N ; ++i ){
-			r[ j ] -= A[ i + N * j ] * x[ j ];
+			r[ j ] -= A[ i + N * j ] * x[ i ];
 		}
 		p[ j ] = r[ j ];
 		rs_old += r[ j ] * r[ j ];
 	}
 	k = 0;
 	flag = 1;
-	while( flag && k < 1e5){
+	while( flag && k < 1){
 		temp = 0;
 		for( j = 0 ; j < N ; ++j ){
 			s[ j ] = 0;
