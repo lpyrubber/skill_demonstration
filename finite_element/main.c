@@ -3,7 +3,7 @@
 int main(){
 	float *x, *y, *Fx, *Fy, *K;
 	float *Kr, *Fr, *U, *u;
-	float *S, scale = 1000;
+	float *S, scale = 1e6;
 	int np, ne, nr, i, j;
 	int *tri;
 	char *Fix_x, *Fix_y;
