@@ -59,7 +59,7 @@ void Conjugate_Gradient( float *A , float *b, float *x ){
 	}
 	k = 0;
 	flag = 1;
-	while( flag && k < 1){
+	while( flag && k < 2){
 		temp = 0;
 		for( j = 0 ; j < N ; ++j ){
 			s[ j ] = 0;
@@ -83,6 +83,7 @@ void Conjugate_Gradient( float *A , float *b, float *x ){
 			p[ i ] = r[ i ] + ( rs_new / rs_old ) * p[ i ];
 		}
 		rs_old = rs_new;
+		printf("rs_old = %e\n", rs_old );
 		k++;
 	}
 	free(p);

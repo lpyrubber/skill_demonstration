@@ -1,6 +1,7 @@
 #include "main.h"
 
-__global__ void GPU_CG( float *a, float *b, float *c, float *d, float *e, float *f, float *g, float *h);
+__global__ void GPU_CG_1( float *a, float *b, float *c, float *d, float *e, float *f, float *g, float *h);
+__global__ void GPU_CG_2( float *a, float *b, float *c, float *d, float *e, float *f, float *g, float *h);
 __global__ void GPU_Init( float *a, float *b, float *c, float *d, float *e,  float *f, float *g );
 
 void Allocate_Memory( float **h_a, float **h_b, float **h_c, float **d_a, float **d_b, float **d_c \
@@ -74,10 +75,11 @@ void Device_Initial( float *a, float *b, float *c, float *d, float *e, float *f,
 void Conjugate_Gradient( float *a, float *b, float *c, float *d, float *e, float *f, float *g, float *h, float *temp){
 	cudaError_t Error;
 	size_t size;
-	printf("BPG = %d, TPB = %d\n", BPG, TPB);
-	GPU_CG<<< BPG, TPB >>>( a, b, c, d, e, f, g, h );
+//	printf("BPG = %d, TPB = %d\n", BPG, TPB);
+	GPU_CG_1<<< BPG, TPB >>>( a, b, c, d, e, f, g, h );
+	GPU_CG_2<<< BPG, TPB >>>( a, b, c, d, e, f, g, h );
 	size = sizeof(float);
-	Error = cudaMemcpy( temp, h, size, cudaMemcpyDeviceToHost );
+	Error = cudaMemcpy( temp, &h[0], size, cudaMemcpyDeviceToHost );
 	if(DEBUG) printf("CUDA Error ( h_err -> d_err ) = %s\n", cudaGetErrorString( Error ) );
 }
 
@@ -156,10 +158,9 @@ __global__ void GPU_Init( float *a, float *b, float *c, float *d, float *e, floa
 	}
 }
 
-__global__ void GPU_CG( float *a, float *b, float *c, float *d, float *e, float *f, float *g, float *h ){
+__global__ void GPU_CG_1( float *a, float *b, float *c, float *d, float *e, float *f, float *g, float *h ){
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	int I = threadIdx.x;
-	float alpha, rsold, rsnew;
 	__shared__ float temp[TPB];
 	if( i < N ){
 		e[ i ] = 0; //s[ i ] = 0;
@@ -182,17 +183,21 @@ __global__ void GPU_CG( float *a, float *b, float *c, float *d, float *e, float 
                 if( i == 0 ){
 			h[ 2 ] = 0;
                         for( int i1 = 0 ; i1 < gridDim.x ; i1++){
-                                h[ 2 ] = h[ 2 ] + g[ i1 ];
+                                h[ 2 ] += g[ i1 ];
                         }
 			h[ 3 ] = h[ 0 ] / h[ 2 ]; //alpha = rsold / temp;
 		}
 		__syncthreads();
-		alpha = h[3];
+	}
+}
+__global__ void GPU_CG_2( float *a, float *b, float *c, float *d, float *e, float *f, float *g, float *h ){
+	int i = blockDim.x * blockIdx.x + threadIdx.x;
+	int I = threadIdx.x;
+	__shared__ float temp[TPB];
+	if( i < N ){
+		c[ i ] += h[3] * d[ i ]; //x[ i ] += alpha * p[ i ]
+		f[ i ] -= h[3] * e[ i ]; //r[ i ] -= alpha * s[ i ]
 		__syncthreads();
-		c[ i ] = c[ i ] + alpha * d[ i ];
-		f[ i ] = f[ i ] + alpha * e[ i ];
-		__syncthreads();
-
                 temp[ I ] = 0;
                 temp[ I ] = f[ i ]*f[ i ]; //rsnew = r * r'
                 __syncthreads();
@@ -206,17 +211,13 @@ __global__ void GPU_CG( float *a, float *b, float *c, float *d, float *e, float 
                 __syncthreads();
                 if( i == 0 ){
 			h[ 1 ] = 0;
-                        for( int i1 = 0 ; i1 < gridDim.x ; i1 += 2){
-                                h[ 1 ] = h[ 1 ] + g[ i1 ];
+                        for( int i1 = 0 ; i1 < gridDim.x ; i1 ++){
+                                h[ 1 ] += g[ i1 ];
                         }
                }
 		__syncthreads();
-		rsnew = h[ 1 ];
-		rsold = h[ 0 ];
-		__syncthreads();
-		d[ i ] = f[ i ] + ( rsnew / rsold ) * d[ i ]; // p[ i ] = r [ i ] + (rsnew/rsold) * p[ i ]
+		d[ i ] = f[ i ] + ( h[1] / h[0] ) * d[ i ]; // p[ i ] = r [ i ] + (rsnew/rsold) * p[ i ]
 		__syncthreads();
 		if( i == 0 ) h[ 0 ] = h[ 1 ];
-		__syncthreads();
 	}
 }

@@ -7,9 +7,9 @@
 #define L 1.0
 #define N 64
 #define dx (L/N)
-#define NO_STEP 1
+#define NO_STEP 2
 #define ERROR 1e-6
-#define TPB 16
+#define TPB 4
 #define BPG ((N+TPB-1)/TPB)
 
 void Allocate_Memory( float **h_a, float **h_b, float **h_c, float **d_a, float **d_b, float **d_c \
