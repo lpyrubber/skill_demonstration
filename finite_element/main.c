@@ -3,7 +3,7 @@
 int main(){
 	float *x, *y, *Fx, *Fy, *K;
 	float *Kr, *Fr, *U, *u;
-	float *S, scale = 1e6;
+	float *S, scale = 1e4;
 	int np, ne, nr, i, j;
 	int *tri;
 	char *Fix_x, *Fix_y;
@@ -14,7 +14,6 @@ int main(){
 	Partition_K_F( np, &nr , Fix_x, Fix_y , Fx, Fy, Fr , K , Kr);
 	Conjugate_Gradient(Kr, Fr, u, nr);
 	Partition_U(np, nr, Fix_x , Fix_y , u, U);
-	scale=1;
 	for( i = 0 ; i < np ; ++i ){
 		x[i]+=scale*U[2*i];
 		y[i]+=scale*U[2*i+1];
