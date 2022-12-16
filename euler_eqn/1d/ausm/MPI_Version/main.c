@@ -11,16 +11,19 @@ void Save_Result( float *a , float *b , float *c);
 
 int main( int argc , char *argv[] ){
 	//Begin MPI
-	MPI_Init( &argc , &argv );	
+	MPI_Init( &argc , &argv );
 	//note : each core while only read its owe variable
 	//set up scalar variable
 	int taskid , numtask , left , right , offset , rows \
 	  , i      , j       , k;
 	//set up array variable by pointer
 	float *u , *rho , *v , *T , *f , *PL , *PR , *ML , *MR;
+	clock_t start_t, end_t;
+	double total_t;
 	//get variable value from MPI
 	MPI_Comm_size( MPI_COMM_WORLD , &numtask );
 	MPI_Comm_rank( MPI_COMM_WORLD , &taskid );
+	if( taskid==MASTER ) start_t=clock();
 	//print debug message
 	if( DEBUG ) printf( "num of task = %d , task id = %d\n" , numtask , taskid );
 	//allocate memory
@@ -45,6 +48,11 @@ int main( int argc , char *argv[] ){
 	//clear the dynamic memory
 	Free_Memory( &u , &rho , &v , &T , &f , &PL , &PR , &ML , &MR );
 	//close MPI
+	if( taskid == MASTER ) {
+		end_t=clock();
+		total_t= (double)(end_t-start_t)/CLOCKS_PER_SEC;
+		printf("CPU runtime = %lf sec\n", total_t);
+	}
 	MPI_Finalize();
 }
 

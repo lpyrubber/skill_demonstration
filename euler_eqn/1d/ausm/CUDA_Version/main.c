@@ -7,6 +7,9 @@ int main(){
 	float *h_u, *h_rho, *h_v, *h_T;
 	float *d_u, *d_rho, *d_v, *d_T, *d_F, *d_PL, *d_PR, *d_ML, *d_MR;
 	int i;
+	clock_t start_t, end_t;
+	double total_t;
+	start_t = clock();
 	Allocate_Memory( &h_u, &h_rho, &h_v, &h_T\
 		       , &d_u, &d_rho, &d_v, &d_T, &d_F, &d_PL, &d_PR, &d_ML, &d_MR );
 	Initiate( h_u, h_rho, h_v, h_T );
@@ -20,7 +23,10 @@ int main(){
 	Save_Result( h_u, h_rho, h_v, h_T );
 	Free( &h_u, &h_rho, &h_v, &h_T\
 	    , &d_u, &d_rho, &d_v, &d_T, &d_F, &d_PL, &d_PR, &d_ML, &d_MR );
-	return 8;
+	end_t=clock();
+	total_t = (double)(end_t-start_t)/CLOCKS_PER_SEC;
+	printf("CPU runtime = %lf\n", total_t);
+	return 0;
 }
 
 void Initiate( float *a, float *b, float*c, float *d ){

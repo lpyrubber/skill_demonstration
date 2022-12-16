@@ -4,12 +4,12 @@
 #include <omp.h>
 
 #define L       100.0
-#define N       200
-#define NT      4
+#define N       20000
+#define NT      8
 #define DX      (L/N)
 #define DT      (0.01*DX)
 #define Z       (DT/DX)
-#define NO_STEP 800
+#define NO_STEP 80000
 #define G       9.81
 #define DEBUG   1
 
@@ -22,10 +22,12 @@ void Free( float **a , float **b , float **c , float **d );
 int main(){
 	int np;
 	float *u , *u_new , *fm , *fp; 
+	double total_t, start_t, end_t;
 	int Np , i , j , tid ;
 
 	omp_set_dynamic( 0 );
 	omp_set_num_threads( NT );
+	start_t=omp_get_wtime();
 	tid = omp_get_thread_num();
 
 	Allocate_Memory( &u , &u_new , &fm , &fp );
@@ -45,6 +47,9 @@ int main(){
 		Save_Result( u );
 	}
 	Free( &u , &u_new , &fm , &fp );
+	end_t=omp_get_wtime();
+        total_t = end_t-start_t;
+        printf("CPU runtime = %lf sec\n", total_t);
 	return  0;
 }
 

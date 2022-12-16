@@ -2,13 +2,14 @@
 #include <stdlib.h>
 #include <immintrin.h>
 #include <string.h>
+#include <time.h>
 
 #define L       1.0
-#define N       200
+#define N       20000
 #define DX      (L/N)
 #define DT      (0.01*DX)
 #define Z       (DT/DX)
-#define NO_STEP 3200
+#define NO_STEP 320000
 #define R       1.0
 #define gamma   ( 7.0 / 5.0 )
 #define CV      ( R / ( gamma - 1 ) )
@@ -32,6 +33,9 @@ FILE  *pFile;
 
 int main(){
 	int i, j;
+	clock_t start_t, end_t;
+	double total_t;
+	start_t=clock();
 	pFile = fopen( "data.txt" , "w" );
 	Allocate_Memory();
 	Initial();
@@ -40,6 +44,9 @@ int main(){
 	}
 	Save_Result();
 	Free_Memory();
+	end_t = clock();
+	total_t = (double)(end_t-start_t)/ CLOCKS_PER_SEC;
+	printf("Total time taken %f sec\n", total_t);
 	return 0;
 }
 

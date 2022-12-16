@@ -7,7 +7,10 @@ int main(){
 	//set variable
 	float *h_u , *h_s , *d_u , *d_s , *d_f ;
 	char  buffer[ 20 ];
-	int  i ;
+	int  i;
+        double total_t;
+        clock_t start_t, end_t;
+        start_t=clock();
 	Allocate_Memory( &h_u , &h_s , &d_u , &d_s , &d_f );
 	Initiate( h_u , h_s );
 	Sent_To_Device( h_u , h_s , d_u , d_s );
@@ -17,6 +20,9 @@ int main(){
 	Sent_To_Host( h_u , h_s , d_u , d_s );
 	Save_Result( h_u , h_s );
 	Free( &h_u , &h_s , &d_u , &d_s , &d_f );
+	end_t=clock();
+        total_t=(double)(end_t-start_t)/CLOCKS_PER_SEC;
+        printf("Total time taken by CPU: %lf sec\n", total_t);
 	return 0;
 }
 

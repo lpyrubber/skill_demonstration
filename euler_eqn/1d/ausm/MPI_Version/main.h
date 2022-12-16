@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
+#include <time.h>
 
 //define constant value
 #define L       1.0       //miles of total length 
-#define N       200        //total number of dx
+#define N       20000        //total number of dx
 #define DX      (L/N)      //miles of dx
 #define DT      (0.01*DX)  //sec for dt
 #define Z       (DT/DX)    //
@@ -14,7 +14,7 @@
 #define R     1.0
 #define CV    (R/(gamma-1))
 #define CP    (CV+R)
-#define NO_STEP  3200
+#define NO_STEP  320000
 #define DEBUG   1
 
 //define constant value for MPI

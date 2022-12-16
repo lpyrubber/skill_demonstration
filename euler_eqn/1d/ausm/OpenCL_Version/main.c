@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #ifdef __APPLE__
     #include <OpenCL/cl.h>
 #else
@@ -21,7 +22,7 @@
 #define LOCAL 256
 #define GLOBAL (((N+LOCAL-1)/LOCAL)*LOCAL)
 #define PLATFORM 0
-#define DEVICE 1
+#define DEVICE 0
 
 #define CaseReturnString(x) case x: return #x;
 
@@ -34,7 +35,10 @@ int main(int argc, char* argv[]){
     char *source_str;
     size_t source_size, program_size, array_size, global_size, local_size;
     int i, j, N_cl;
+    clock_t start_t, end_t;
+    double total_t;
 
+    start_t=clock();
     Z_cl = Z;
     N_cl = N;
     global_size = GLOBAL;
@@ -213,6 +217,9 @@ int main(int argc, char* argv[]){
 	free( platforms );
 	free( device_list );
 	
+	end_t = clock();
+	total_t = (double)(end_t-start_t)/CLOCKS_PER_SEC;
+	printf("CPU runtime = %lf sec\n",total_t);
 	return 0;
 
 }

@@ -2,15 +2,16 @@
 #include <stdlib.h>
 #include <immintrin.h>
 #include <string.h>
+#include <time.h>
 #include <omp.h>
 
 #define L       100.0
-#define N       200
+#define N       20000
 #define DX      (L/N)
 #define DT      (0.01*DX)
 #define Z       (DT/DX)
 #define GAP     10
-#define NO_STEP 800
+#define NO_STEP 80000
 #define G       9.81
 #define SINGLE  8
 #define NS      ((N+SINGLE+1)/SINGLE) 
@@ -32,10 +33,12 @@ FILE  *pFile;
 
 int main(){
 	int i, tid;
+	double total_t, start_t, end_t;
 	pFile = fopen( "data.txt" , "w" );
 
 	omp_set_dynamic(0);
 	omp_set_num_threads( NT );
+	start_t=omp_get_wtime();
 	Allocate_Memory();
 	#pragma omp parallel shared( u1 , u2 , u1_new , u2_new , fm1 , fm2 , fp1 , fp2 ) \
 			     private( i , tid )
@@ -50,6 +53,9 @@ int main(){
 	}
 	Save_Result();
 	Free_Memory();
+	end_t=omp_get_wtime();
+	total_t = end_t-start_t;
+	printf("CPU runtime = %lf sec\n", total_t);
 	return 0;
 }
 

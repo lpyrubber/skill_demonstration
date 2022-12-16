@@ -1,14 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define L       100.0
-#define N       200
+#define N       20000
 #define DX      (L/N)
 #define DT      (0.01*DX)
 #define Z       (DT/DX)
 #define TPB     256
 #define BPG     (int)((N+TPB-1)/TPB )
-#define NO_STEP 800
+#define NO_STEP 80000
 #define G       9.81
 
 #define DEBUG 0

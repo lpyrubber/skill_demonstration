@@ -2,14 +2,15 @@
 #include <stdlib.h>
 #include <immintrin.h>
 #include <string.h>
+#include <time.h>
 
 #define L       100.0
-#define N       200
+#define N       20000
 #define DX      (L/N)
 #define DT      (0.01*DX)
 #define Z       (DT/DX)
 #define GAP     10
-#define NO_STEP 1
+#define NO_STEP 80000
 #define G       9.81
 #define SINGLE  8
 #define NS      ((N+SINGLE+1)/SINGLE) 
@@ -30,6 +31,9 @@ FILE  *pFile;
 
 int main(){
 	int i, j;
+	double total_t;
+        clock_t start_t, end_t;
+        start_t=clock();
 	pFile = fopen( "data.txt" , "w" );
 	Allocate_Memory();
 	Initial();
@@ -40,6 +44,9 @@ int main(){
 	}
 	Save_Result();
 	Free_Memory();
+	end_t=clock();
+        total_t=(double)(end_t-start_t)/CLOCKS_PER_SEC;
+        printf("Total time taken by CPU: %lf sec\n", total_t);
 	return 0;
 }
 

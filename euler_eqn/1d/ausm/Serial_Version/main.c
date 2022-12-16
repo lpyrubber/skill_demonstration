@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 
 #define L     1.0
-#define N     200
+#define N     20000
 #define dx    (L/N)
 #define dt    0.01*dx
 #define Z     (dt/dx)
@@ -11,7 +12,7 @@
 #define R     1.0
 #define CV    (R/(gamma-1))
 #define CP    (CV+R)
-#define STEP  3200
+#define STEP  320000
 
 float *rho, *u, *T;
 float *U, *F;
@@ -25,6 +26,9 @@ void Free_Memory();
 
 int main(){
 	int i;
+	double total_t;
+	clock_t start_t, end_t;
+	start_t=clock();
 	Memory_Allocate();
 	Initial();
 	for(i=0; i<STEP; ++i){
@@ -32,6 +36,10 @@ int main(){
 	}
 	Save_Result();
 	Free_Memory();
+	end_t=clock();
+	total_t=(double)(end_t-start_t)/CLOCKS_PER_SEC;
+	printf("Total time taken by CPU: %lf sec\n", total_t);
+	return 0;
 }
 
 void Memory_Allocate(){

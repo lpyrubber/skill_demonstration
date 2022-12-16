@@ -2,15 +2,15 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <math.h>
-
+#include <time.h>
 
 #define L 100.0
-#define N 200
+#define N 20000
 #define DX (L/N)
 #define DT (0.01*DX)
 #define Z (DT/DX)
 #define GAP 10
-#define NO_STEP 800
+#define NO_STEP 80000
 #define G 9.81
 
 float *u, *u_new;
@@ -28,6 +28,9 @@ int main(){
 	static int k=0;
 	char temp[20];
 	int i;
+	double total_t;
+	clock_t start_t, end_t;
+	start_t=clock();
 	sprintf(temp, "data_%d.txt",k);
 	pFile = fopen(temp, "w");
 	Allocate_Memory();
@@ -37,15 +40,18 @@ int main(){
 		Compute_Flux();
 		Compute_U();
 		Update_U();
-		if(i%GAP==(GAP-1)&&i<NO_STEP-1){
+//		if(i%GAP==(GAP-1)&&i<NO_STEP-1){
 //			Save_Result();
-		}
+//		}
 	}
-	printf("%f %f\n", u[N+2], u[1+N+2]);
-	printf("%f %f %f %f\n", fm[0], fm[1], fp[1], fp[2]);
+//	printf("%f %f\n", u[N+2], u[1+N+2]);
+//	printf("%f %f %f %f\n", fm[0], fm[1], fp[1], fp[2]);
 	Save_Result();
 	Free_Memory();
 	fclose(pFile);
+	end_t=clock();
+	total_t=(double)(end_t-start_t)/CLOCKS_PER_SEC;
+	printf("Total time taken by CPU: %lf sec\n", total_t);
 	return 0;
 }
 
