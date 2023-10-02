@@ -1,15 +1,16 @@
 # skill_demonstration
-This repository is a hodgepodge of my previous works in Compuational Physics.
+This repository is a hodgepodge of my previous works in Computational Physics.
 
-* Particle in Cell method (1-D plasma simulation for demonstrating Landu damping) 
+* Particle in Cell Method (1-D plasma simulation for mimicing Landau damping) 
 
-* Finite Element method (Material mechanics)
+* Finite Element Method (Material Mechanics)
 
-* Mesh Generator (Delauney triangle)
+* Mesh Generator (Delauney Triangle)
 
-* Conjegate Gradient (Linear Equation Solver)
+* Conjugate Gradient Method (Linear Equation Solver for 1-D heat diffusion problem)
+  * CUDA version
 
-* Shallow Water Equation (1-D shallow water shock wave with finite volume method)
+* Shallow Water Equation (1-D shallow water shock wave with Finite Volume Method)
   * AVX, MPI, OpenMP, OpenCL, CUDA 
   * MPI + CUDA for multi GPU case
   * OpenMP + AVX for further speed up (thread level + instruction level parallelism)
@@ -18,8 +19,9 @@ This repository is a hodgepodge of my previous works in Compuational Physics.
 * Euler Equation (1-D shock wave with finite volume method + AUSM scheme)
   * AVX, MPI, OpenMP, OpenCL, CUDA
   
-* validation platform
-  * 13 inch Macbook Pro (2020 version)
+  ------------------------
+* Validation Platform:
+  * 13 inch Macbook Pro (2020 intel CPU version)
   * Self-constructed PC
     * CPU: AMD Ryzen 3700x (8 physical cores, 16 cores with hyper threads)
     * DRAM: DDR4 16 GB 
