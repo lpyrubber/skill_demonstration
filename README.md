@@ -3,23 +3,28 @@ This repository is a hodgepodge of my previous works in Computational Physics.
 
 * Particle in Cell Method (1-D plasma simulation for mimicing Landau damping) 
 
-* Finite Element Method (Material Mechanics)
-
 * Mesh Generator (Delauney Triangle)
+  * Bowyer-Watson algorithm
+  wiki:https://en.wikipedia.org/wiki/Bowyer–Watson_algorithm
 
 * Conjugate Gradient Method (Linear Equation Solver for 1-D heat diffusion problem)
-  * CUDA version
+  * including CUDA version
+
+* Finite Element Method (Material Mechanics)
+  * Using above Mesh Generator to greate triangular mesh
+  * Using serial Cojugate Gradiend code as solver
 
 * Shallow Water Equation (1-D shallow water shock wave with Finite Volume Method)
-  * AVX, MPI, OpenMP, OpenCL, CUDA 
-  * MPI + CUDA for multi GPU case
-  * OpenMP + AVX for further speed up (thread level + instruction level parallelism)
-  * OpenMP + MPI
+  * including AVX, MPI, OpenMP, OpenCL,and CUDA version 
+  * Some hybrid version:
+    * MPI + CUDA for multi GPU usage
+    * OpenMP + AVX for further speedup (thread level + instruction level parallelism)
+    * OpenMP + MPI
 
 * Euler Equation (1-D shock wave with finite volume method + AUSM scheme)
-  * AVX, MPI, OpenMP, OpenCL, CUDA
+  * including AVX, MPI, OpenMP, OpenCL, and CUDA version
   
-  ------------------------
+-------------------------
 * Validation Platform:
   * 13 inch Macbook Pro (2020 intel CPU version)
   * Self-constructed PC
