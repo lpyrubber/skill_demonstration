@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <malloc.h>
 #include <stdlib.h>
 #include <math.h>
 
@@ -16,7 +15,7 @@
 #define R     1.0
 #define CV    (R/(gamma-1))
 #define CP    (CV+R)
-#define NO_STEP  1
+#define NO_STEP  100
 #define mu 1.0
 #define lamda 1.0
 
@@ -63,9 +62,11 @@ void Allocate_Memory(){
 #if N_SPECIES>1
 	u = (float*)malloc((3+N_SPECIES)*size);
 	fp = (float*)malloc((3+N_SPECIES)*size);
+	printf("u and fp have %d rows\n", 3+N_SPECIES);
 #else
 	u = (float*)malloc(3*size);
 	fp = (float*)malloc(3*size);
+	printf("u and fp have %d rows\n", 3);
 #endif
 	D = (float*)malloc(N_SPECIES*sizeof(float));
 	W = (float*)malloc(N_SPECIES*sizeof(float));
@@ -82,6 +83,7 @@ void Initial(){
 	for(j=0; j<N_SPECIES; i++){
 		W_total+=1/N_SPECIES/W[j];
 	}
+	printf("calculate W\n");
 #endif
 	for(i=0; i<N; i++){
 		if(((i-1)<0.5*N)){
@@ -96,6 +98,7 @@ void Initial(){
 		u[i+N]=rho[i]*v[i];
 		u[i+2*N]=rho[i]*(CV*T[i]+0.5*v[i]*v[i]);
 #if N_SPECIES>1
+		printf("calculating Y,x\n");
 		for(j=0;j<N_SPECIES;j++){
 			Y[i+j*N]=1/N_SPECIES;
 			x[i+j*N]=Y[i+j*N]/W[j]/W_total;
@@ -111,6 +114,7 @@ void Compute_Flux(){
 	float sum1,sum2, sum3;
 	
 	for(i=1; i<N;i++){
+#if N_SPECIES>1
 		sum1=0;
 		sum2=0;
 		sum3=0;
@@ -122,6 +126,7 @@ void Compute_Flux(){
 			sum2+=D[j]*W[j]*(x[i+j*N]-x[i-1+j*N])/dx/sum1;
 			sum3+=D[j]*W[j]*CP*T[i]*(x[i+j*N]-x[i-1+j*N])/dx/sum1;
 		}
+#endif
 		F1 = i*dx*i*dx*(rho[i]*v[i]); 
 		//pressure term might have mistake since 
 		F2 = i*dx*i*dx*(rho[i]*v[i]*v[i] + R*rho[i]*T[i] - 1.333*mu*(v[i]-v[i-1])/dx);
