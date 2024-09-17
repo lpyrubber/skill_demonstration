@@ -6,7 +6,7 @@
 
 #define L 2.0
 #define N 41
-#define N_STEP 10000
+#define N_STEP 10
 #define N_METHOD 9
 #define dx L/(N-1)
 #define C 1
@@ -20,7 +20,7 @@ void Update_U();
 void Save_Result(int time);
 void Free_Memory();
 
-float *u, *u_new, *u_bar, *u_k, *u_h, *f;
+float *u, *u_new, *v, *gamma, *f;
 FILE *pFile;
 
 int main(){
@@ -44,7 +44,7 @@ int main(){
 void Allocate_Memory(){
 	v = (float*)malloc(N_METHOD * N * sizeof(float));
 	gamma = (float*)malloc(N_METHOD * N * sizeof(float));
-	b = (float*)malloc(N_METHOD * N * sizeof(float));
+	f = (float*)malloc(N_METHOD * N * sizeof(float));
 	u = (float*)malloc(N_METHOD * N * sizeof(float));
 	u_new = (float*)malloc(N_METHOD * N * sizeof(float));
 }
@@ -65,8 +65,8 @@ void Initial(){
 		v[i + N] = 0;
 	}
 	for(i = 1; i < N-1; i++){
-		b[i] = u[i];
-		b[i + N] = u[i + N] - 0.5 * C * dt / dx * (u[i + N + 1] - u[i + N - 1]);
+		f[i] = u[i];
+		f[i + N] = u[i + N] - 0.5 * C * dt / dx * (u[i + N + 1] - u[i + N - 1]);
 	}
 	//Implicit central
 	for(i = 1; i < N - 1; i++){
@@ -83,7 +83,8 @@ void Initial(){
 void Compute_flux(){
 	int i, j, offset;
 	//boundary value maintain
-	u_bar[
+	bool flag;
+	
 }
 void Update_U(){
 	int i, j, offset;
