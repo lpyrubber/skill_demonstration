@@ -23,13 +23,15 @@
 #define LO (L-C)
 #define dxmin 0.05*C
 #define dymin 0.1*TH
-#define N_METHOD 5
+//#define N_METHOD 5
+#define N_METHOD 2
 
 void Allocate_Memory();
 void Initial();
 void Create_Grid();
 void Interation();
 void Calculate_residual(int method, int time);
+void Calculate_residual_old(int method, int time);
 void Calculate_CP();
 float Calculate_Kappa(int N, float length, float delta);
 void Save_Result(int time);
@@ -47,7 +49,7 @@ int main(){
 	Save_Result(time);
 	Interation();
 	time++;
-//	Save_Result(time);
+	Save_Result(time);
 	Calculate_CP();
 	fclose(pFile);
 	Free_Memory();
@@ -100,6 +102,7 @@ void Initial(){
 		for(j=0; j<NY; j++){
 			for(i=0; i<NX; i++){
 				phi[i+j*NX+k*NX*NY]=Vinf*x[i];
+				phi_new[i+j*NX+k*NX*NY]=Vinf*x[i];
 			}
 		}
 	}
@@ -113,25 +116,42 @@ void Interation(){
 		offset = 0;
 		Calculate_residual(0,k);
 		for(i=1; i<NX-1; i++){
-			for(j=0; j<NY-1; j++){
+			if((i>(NO-1))&&(i<(NC+NO))){
+				phi_new[i+offset]=phi[i+NX+offset]-Vinf*dymin*((0.5*C-x[i])/sqrt((pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));		
+			}else{
+				phi_new[i+offset]=phi[i+NX+offset];
+			}
+		}		
+		for(j=1; j<NY-1; j++){
+			for(i=1; i<NX-1; i++){
 				a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
 				b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
 				c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
 				d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
-				phi_new[i+j*NX+offset]=1/(a+b+c+d)*(a*phi[i-1+j*NX+offset]+b*phi[i+1+j*NX+offset]+c*phi[i+(j-1)*NX+offset]+d*phi[i+(j+1)*NX+offset]);
+				phi_new[i+j*NX+offset] = 1/(a+b+c+d)*(a*phi[i-1+j*NX+offset]+b*phi[i+1+j*NX+offset]+c*phi[i+(j-1)*NX+offset]+d*phi[i+(j+1)*NX+offset]);
 			}
 		}
-		//bottom part
-		for(i=1; i<NX-1; i++){
-			if((i>(NO-1))&&(i<(NC+NO+1))){
-				phi_new[i+offset]=phi[i+NX+offset]-Vinf*dymin*((0.5*C-x[i])/(pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2)));
-			}else{
-				phi_new[i+offset]=phi[i+NX+offset];
-			}
-		}
-		
 		//method 2
+		offset = NX*NY;
+		Calculate_residual(1,k);
+		for(i=1; i<NX-1; i++){
+			if((i>(NO-1))&&(i<(NC+NO))){
+				phi_new[i+offset]=phi_new[i+NX+offset]-Vinf*dymin*((0.5*C-x[i])/sqrt((pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));		
+			}else{
+				phi_new[i+offset]=phi_new[i+NX+offset];
+			}
+		}		
+		for(j=1; j<NY-1; j++){
+			for(i=1; i<NX-1; i++){
+				a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+				b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
+				c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+				d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
+				phi_new[i+j*NX+offset] = 1/(a+b+c+d)*(a*phi_new[i-1+j*NX+offset]+b*phi_new[i+1+j*NX+offset]+c*phi_new[i+(j-1)*NX+offset]+d*phi_new[i+(j+1)*NX+offset]);
+			}
+		}
 		//method 3
+
 		//method 4
 		//method 5
 
@@ -147,9 +167,22 @@ void Interation(){
 	}
 }
 
+void Calculate_residual_old(int method, int time){
+	int i, j;
+	float a, b, c, d, sum, temp, temp1, temp2;
+	sum=0;
+	for(i=1; i<NX-1; i++){
+		for(j=1; j<NY-1; j++){
+			temp = fabs(phi_new[i+j*NX+method*NX*NY]-phi[i+j*NX+method*NX*NY]);
+			sum = (sum>temp) ? sum : temp;
+		
+		}
+	}
+	residual[time+method*N_IT] = sum;
+}
 void Calculate_residual(int method, int time){
 	int i, j;
-	float a, b, c, d, sum, temp;
+	float a, b, c, d, sum, temp, temp1, temp2;
 	sum=0;
 	for(i=1; i<NX-1; i++){
 		for(j=1; j<NY-1; j++){
@@ -158,7 +191,14 @@ void Calculate_residual(int method, int time){
 			c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
 			d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
 			temp = fabs(-(a+b+c+d)*phi[i+j*NX+method*NX*NY]+a*phi[i-1+j*NX+method*NX*NY]+b*phi[i+1+j*NX+method*NX*NY]+c*phi[i+(j-1)*NX+method*NX*NY]+d*phi[i+(j+1)*NX+method*NX*NY]);
-			sum = 0.5*(temp+sum)+0.5*fabs(temp-sum);
+/*
+			temp1 = 2*Am*((phi[i+1+j*NX+method*NX*NY]-phi[i+j*NX+method*NX*NY])/(x[i+1]-x[i])\
+				     -(phi[i+j*NX+method*NX*NY]-phi[i-1+j*NX+method*NX*NY])/(x[i]-x[i-1]))/(x[i+1]-x[i-1]);
+			temp2 = 2*((phi[i+(j+1)*NX+method*NX*NY]-phi[i+j*NX+method*NX*NY])/(y[j+1]-y[j])\
+			          -(phi[i+j*NX+method*NX*NY]-phi[i+(j-1)*NX+method*NX*NY])/(y[j]-y[j-1]))/(y[j+1]-y[j-1]);
+			temp = fabs(temp1 + temp2);
+*/			sum = (sum>temp) ? sum : temp;
+		
 		}
 	}
 	residual[time+method*N_IT] = sum;
@@ -200,7 +240,7 @@ void Save_Result(int time){
 		fprintf(pFile, "\n");
 		for(j = 0; j < NY; j++){
 			for(i = 0; i < NX; i++){
-				fprintf(pFile, "%e ", y[i]);
+				fprintf(pFile, "%e ", y[j]);
 			}
 		}
 		fprintf(pFile, "\n");
@@ -216,14 +256,15 @@ void Save_Result(int time){
 				for( i = 0; i < NX; i++){
 					fprintf(pFile, "%e ", phi[ i + j * NX + k * NX * NY ]);
 				}
-				fprintf(pFile, "\n");
 			}
+			fprintf(pFile, "\n");
 		}
 		in2 = fopen("residual.txt","w");
 		for(k=0; k<N_METHOD; k++){
 			for(i=0; i<N_IT; i++){
-				fprintf(in2, "%e", residual[i+k*N_METHOD]);
+				fprintf(in2, "%e ", residual[i+k*N_METHOD]);
 			}
+			fprintf(in2,"\n");
 		}
 		fclose(in2);
 	}
