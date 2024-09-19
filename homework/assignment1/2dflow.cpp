@@ -24,7 +24,7 @@
 #define dxmin 0.05*C
 #define dymin 0.1*TH
 //#define N_METHOD 5
-#define N_METHOD 2
+#define N_METHOD 3
 
 void Allocate_Memory();
 void Initial();
@@ -37,7 +37,7 @@ float Calculate_Kappa(int N, float length, float delta);
 void Save_Result(int time);
 void Free_Memory();
 
-float *x, *y, *phi, *phi_new, *b, *residual;
+float *x, *y, *phi, *phi_new, *residual, *cp, *f, *dp ;
 FILE *pFile;
 
 int main(){
@@ -58,12 +58,17 @@ int main(){
 
 
 void Allocate_Memory(){
+	int N;
+	N = (int)((NX+NY+abs(NY-NX))/2);
+	printf("N=%d\n",N);
 	x = (float*)malloc(NX * sizeof(float));
 	y = (float*)malloc(NY * sizeof(float));
 	residual = (float*)malloc(N_METHOD * N_IT * sizeof(float));
 	phi = (float*)malloc(NX * NY * N_METHOD * sizeof(float));
 	phi_new = (float*)malloc(NX * NY * N_METHOD * sizeof(float));
-	b = (float*)malloc(NX * NY * N_METHOD * sizeof(float));
+	cp = (float*)malloc(N * sizeof(float));
+	dp = (float*)malloc(N * sizeof(float));
+	f = (float*)malloc(N * sizeof(float));
 }
 
 void Create_Grid(){
@@ -77,8 +82,6 @@ void Create_Grid(){
 		x[NO-1-i] = -LO*(exp(K*(i+1)/NO)-1)/(exp(K)-1);
 		x[NO + NC + i] = C + LO*(exp(K*(i+1)/NO)-1)/(exp(K)-1); 
 	}
-	for(i = 0; i < NX; i++)
-		printf("%2.2f ",x[i]);
 	K= Calculate_Kappa(NY, D, dymin);
 	y[0]=0;
 	for(i = 1; i < NY; i++){
@@ -111,6 +114,7 @@ void Initial(){
 void Interation(){
 	int i, j, k, l, offset;
 	float a, b, c, d;
+	int flag=1;
 	for(k=0; k<N_IT; k++){
 		//method 1
 		offset = 0;
@@ -123,11 +127,11 @@ void Interation(){
 			}
 		}		
 		for(j=1; j<NY-1; j++){
+			c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+			d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
 			for(i=1; i<NX-1; i++){
 				a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
 				b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-				c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
-				d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
 				phi_new[i+j*NX+offset] = 1/(a+b+c+d)*(a*phi[i-1+j*NX+offset]+b*phi[i+1+j*NX+offset]+c*phi[i+(j-1)*NX+offset]+d*phi[i+(j+1)*NX+offset]);
 			}
 		}
@@ -142,19 +146,122 @@ void Interation(){
 			}
 		}		
 		for(j=1; j<NY-1; j++){
+			c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+			d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
 			for(i=1; i<NX-1; i++){
 				a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
 				b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-				c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
-				d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
 				phi_new[i+j*NX+offset] = 1/(a+b+c+d)*(a*phi_new[i-1+j*NX+offset]+b*phi_new[i+1+j*NX+offset]+c*phi_new[i+(j-1)*NX+offset]+d*phi_new[i+(j+1)*NX+offset]);
 			}
 		}
+
 		//method 3
+		offset=2*NX*NY;
+		Calculate_residual(2,k);
+		//ydir
+/*		for(i=1; i<NX-1; i++){
+			//set up f,
+			a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+			b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
+			if((i>(NO-1))&&(i<(NC+NO))){
+				f[0] = -Vinf*dymin*((0.5*C-x[i])/sqrt((pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));		
+			}else{
+				f[0]=0;
+			}
+			for(j=1; j<NY-1; j++){	
+				f[j]=-a*phi[i-1+j*NX+offset]-b*phi[i+1+j*NX+offset];
+			}
+			d=2/(y[NY-1]-y[NY-2])/(y[NY-1]-y[NY-3]);
+			f[NY-2] -= d*phi_new[i+(NY-1)*NX+offset];
+			//a=c, b=-a-b-c-d, c=d, d=f, 
+			cp[0]=-1;
+			dp[0]=f[0];
+			for(j=1; j<NY-1; j++){
+				c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+				d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
+				cp[j] = d/(-(a+b+c+d)-c*cp[j-1]);
+				dp[j] = (f[j]-c*dp[j-1])/(-(a+b+c+d)-c*cp[j-1]);
+			}
+			phi_new[i+(NY-2)*NX+offset]=dp[NY-2];
+			for(j=NY-3;j>=0;j--){
+				phi_new[i+j*NX+offset]=dp[j]-cp[j]*phi_new[i+(j+1)*NX+offset];
+			}
+		}
+*/
+		//for boundary, ie, j=0;
+		for(i=1; i<NX-1; i++){
+			if((i>(NO-1))&&(i<(NC+NO))){
+		        	phi_new[i+offset]=phi[i+NX+offset]-Vinf*dymin*((0.5*C-x[i])/sqrt(pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2)));
+                	}else{
+                                phi_new[i+offset]=phi[i+NX+offset];
+                        }
+		}
 
+		for(j=1; j<NY-1; j++){
+			//set up f
+			c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+                        d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
+			
+			for(i=1; i<NX-1; i++){
+				f[i]=-c*phi[i+(j-1)*NX+offset]-d*phi[i+(j+1)*NX+offset];
+				if(isnan(f[i])&&flag){
+					printf("i=%d, j=%d, k=%d\n",i,j,k);
+					printf("f=%e\n",f[i]);
+					flag=0;
+				}	
+			}
+			a=2*Am/(x[2]-x[0])/(x[1]-x[0]);
+                        b=2*Am/(x[NX-1]-x[NX-3])/(x[NX-1]-x[NX-2]);
+			f[1]-=a*phi_new[j*NX+offset];
+			f[NX-2]-=b*phi_new[NX-1+j*NX+offset];
+			
+			//a=a, b=-a-b-c-d, c=b, d=f, 
+                        b=2*Am/(x[2]-x[0])/(x[2]-x[1]);
+			cp[1]=b/(-(a+b+c+d));
+			dp[1]=f[1]/(-(a+b+c+d));
+			for(i=1; i<NX-1; i++){
+				a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+				b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
+				cp[i] = b/(-(a+b+c+d)-b*cp[i-1]);
+				dp[i] = (f[i]-a*dp[i-1])/(-(a+b+c+d)-b*cp[i-1]);
+				if(isnan(cp[i])||isnan(dp[i])){
+					if(flag){
+						printf("i=%d, j=%d, k=%d\n",i,j,k);
+						printf("cp %e dp %e\n", cp[i],dp[i]);
+						printf("%e %e %e %e\n",a,b,c,d);
+						printf("%e\n",a+b+c+d+b*cp[i-1]);
+						printf("%e\n",f[i]);
+						flag=0;
+					}
+				}
+			}
+			phi_new[NX-2+j*NX+offset]=dp[NX-2];
+			for(i=NX-3;i>0;i--){
+				phi_new[i+j*NX+offset]=dp[i]-cp[i]*phi_new[i+1+j*NX+offset];
+				if(isnan(phi_new[i])){
+					if(flag){
+						printf("i=%d, j=%d, k=%d\n",i,j,k);
+						printf("cp %e dp %e phi %e\n", cp[i],dp[i],phi_new[i+j*NX+offset]);
+						printf("%e %e %e %e\n",a,b,c,d);
+						printf("%e\n",a+b+c+d+b*cp[i-1]);
+						printf("%e\n",f[i]);
+						flag=0;
+					}
+				}
+			}
+		}
 		//method 4
+//		offset=3*NX*NY;
 		//method 5
-
+//		offset=4*NX*NY;
+//		if((k&0x1)==0){
+			//ydir
+//		}else{
+			//xdir
+		
+//		}
+		
+		
 		//update phi
 		for(l=0; l<N_METHOD; l++){
 			for(j=0; j<NY; j++){
@@ -275,7 +382,8 @@ void Free_Memory(){
 	free(phi_new);
 	free(x);
 	free(y);
-	free(b);
 	free(residual);
-//	free(A);
+	free(cp);
+	free(f);
+	free(dp);
 }
