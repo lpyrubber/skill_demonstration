@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#define Minf 0.5
+#define Minf 0.908
 #define Gm 1.4
 #define C 1.0
 #define TH 0.06
@@ -15,7 +15,7 @@
 #define NY 51
 #define NC 21
 #define N_it 20
-#define N_IT 1000
+#define N_IT 400
 #define NO (int)(0.5*(NX-NC))
 #define L ((NX-1)*C)
 #define D ((NY-1)*C)
@@ -222,11 +222,11 @@ void Calculate_CP(){
 	in2 = fopen("cp.txt","w");
 	for(i=0;i<NX;i++){
 		if(i==0){
-			u=(phi[i+1]-phi[i])/(x[i+1]-x[i]);
+			u=Vinf+(phi[i+1]-phi[i])/(x[i+1]-x[i]);
 		}else if(i==NX-1){
-			u=(phi[i]-phi[i-1])/(x[i]-x[i-1]);
+			u=Vinf+(phi[i]-phi[i-1])/(x[i]-x[i-1]);
 		}else{
-			u=(phi[i+1]-phi[i-1])/(x[i+1]-x[i-1]);
+			u=Vinf+(phi[i+1]-phi[i-1])/(x[i+1]-x[i-1]);
 		}
 		v=(phi[i+NX]-phi[i])/(y[1]-y[0]);
 		p=Pinf*pow((1-0.5*(Gm-1)*Minf*Minf*((u*u+v*v)/(Vinf*Vinf)-1)),Gm/(Gm-1));
