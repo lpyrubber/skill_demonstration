@@ -18,32 +18,31 @@
 #define N_it 20
 #define N_IT 1000
 #define NO (int)(0.5*(NX-NC))
-#define L (NX-1)*C
-#define D (NY-1)*C
+#define L ((NX-1)*C)
+#define D ((NY-1)*C)
 #define LO (L-C)
-#define dxmin 0.05*C
-#define dymin 0.1*TH
-//#define N_METHOD 5
-#define N_METHOD 3
+#define dxmin (0.05*C)
+#define dymin (0.1*TH)
+#define N_METHOD 5
 
 void Allocate_Memory();
 void Initial();
 void Create_Grid();
 void Interation();
 void Calculate_residual(int method, int time);
-void Calculate_residual_old(int method, int time);
 void Calculate_CP();
+void LU_Solver(int N);
 double Calculate_Kappa(int N, double length, double delta);
 void Print_Residual();
 void Save_Result(int time);
 void Free_Memory();
 
-double *x, *y, *phi, *phi_new, *residual, *cp, *f, *dp ;
+double *am, *bm, *cm, *dm, *x, *y, *phi, *phi_new, *residual, *cp, *f, *dp, *bp ;
 FILE *pFile;
 
 int main(){
 	int i, time=0;
-	pFile = fopen("data.txt","w");
+	pFile = fopen("2d_data.txt","w");
 	Allocate_Memory();
 	Create_Grid();
 	Initial();
@@ -68,9 +67,14 @@ void Allocate_Memory(){
 	residual = (double*)malloc(N_METHOD * N_IT * sizeof(double));
 	phi = (double*)malloc(NX * NY * N_METHOD * sizeof(double));
 	phi_new = (double*)malloc(NX * NY * N_METHOD * sizeof(double));
+	bp = (double*)malloc(N * sizeof(double));
 	cp = (double*)malloc(N * sizeof(double));
 	dp = (double*)malloc(N * sizeof(double));
 	f = (double*)malloc(N * sizeof(double));
+	am = (double*)malloc(N * sizeof(double));
+	bm = (double*)malloc(N * sizeof(double));
+	cm = (double*)malloc(N * sizeof(double));
+	dm = (double*)malloc(N * sizeof(double));
 }
 
 void Create_Grid(){
@@ -106,13 +110,8 @@ void Initial(){
 	for(k=0; k<N_METHOD; k++){
 		for(j=0; j<NY; j++){
 			for(i=0; i<NX; i++){
-//				if((i==0)||(i==NX-1)||(j==0)||(j==NY-1)){
-					phi[i+j*NX+k* 
-					phi_new[i+j*NX+k* 
-//				}else{
-//					phi[i+j*NX+k* 
-//					phi_new[i+j*NX+k* 
-//				}
+					phi[i+j*NX+k*NX*NY]=Vinf*x[i];
+					phi_new[i+j*NX+k*NX*NY]=Vinf*x[i];
 			}
 		}
 	}
@@ -125,195 +124,253 @@ void Interation(){
 	for(k=0; k<N_IT; k++){
 		//method 1
 		offset = 0;
-		Calculate_residual(0,k);
+		
+		//left right
+		for(j=0; j<NY; j++){
+			phi_new[j*NX+offset]=Vinf*x[0];
+			phi_new[(NX-1)+j*NX+offset]=Vinf*x[NX-1];
+		}
+		//top
+		for(i=0; i<NX; i++){
+			phi_new[i+(NY-1)*NX+offset]=Vinf*x[i];
+		}
+
+		for(j=1; j<NY-1; j++){
+			for(i=1; i<NX-1; i++){
+				a=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
+				b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+				c=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
+				d=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+				phi_new[i+j*NX+offset] = (a*phi[i+1+j*NX+offset]+b*phi[i-1+j*NX+offset]+c*phi[i+(j+1)*NX+offset]+d*phi[i+(j-1)*NX+offset])/(a+b+c+d);
+			}
+		}
+		//bottom
 		for(i=1; i<NX-1; i++){
 			if((i>(NO-1))&&(i<(NC+NO))){
 				phi_new[i+offset]=phi[i+NX+offset]-Vinf*dymin*((0.5*C-x[i])/sqrt((pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));		
 			}else{
 				phi_new[i+offset]=phi[i+NX+offset];
 			}
-		}		
+		}
+
+		//method 2
+		offset = NX*NY;
+		//left right
+		for(j=0; j<NY; j++){
+			phi_new[j*NX+offset]=Vinf*x[0];
+			phi_new[(NX-1)+j*NX+offset]=Vinf*x[NX-1];
+		}
+		//top
+		for(i=0; i<NX; i++){
+			phi_new[i+(NY-1)*NX+offset]=Vinf*x[i];
+		}
+
 		for(j=1; j<NY-1; j++){
-			c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
-			d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
 			for(i=1; i<NX-1; i++){
-				a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
-				b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-				phi_new[i+j*NX+offset] = 1/(a+b+c+d)*(a*phi[i-1+j*NX+offset]+b*phi[i+1+j*NX+offset]+c*phi[i+(j-1)*NX+offset]+d*phi[i+(j+1)*NX+offset]);
+				a=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
+				b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+				c=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
+				d=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+				phi_new[i+j*NX+offset] = (a*phi[i+1+j*NX+offset]+b*phi_new[i-1+j*NX+offset]+c*phi[i+(j+1)*NX+offset]+d*phi_new[i+(j-1)*NX+offset])/(a+b+c+d);
 			}
 		}
-		//method 2
-		offset =  
-		Calculate_residual(1,k);
+		//bottom
 		for(i=1; i<NX-1; i++){
 			if((i>(NO-1))&&(i<(NC+NO))){
 				phi_new[i+offset]=phi_new[i+NX+offset]-Vinf*dymin*((0.5*C-x[i])/sqrt((pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));		
 			}else{
 				phi_new[i+offset]=phi_new[i+NX+offset];
 			}
-		}		
-		for(j=1; j<NY-1; j++){
-			c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
-			d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
-			for(i=1; i<NX-1; i++){
-				a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
-				b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-				phi_new[i+j*NX+offset] = 1/(a+b+c+d)*(a*phi_new[i-1+j*NX+offset]+b*phi_new[i+1+j*NX+offset]+c*phi_new[i+(j-1)*NX+offset]+d*phi_new[i+(j+1)*NX+offset]);
-			}
 		}
 
 		//method 3
-		offset=2* 
-		Calculate_residual(2,k);
-		//ydir
+		offset=2*NX*NY;
 		for(i=1; i<NX-1; i++){
-			//set up f,
-			a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
-			b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-			if((i>(NO-1))&&(i<(NC+NO))){
-				f[0] = -Vinf*dymin*((0.5*C-x[i])/sqrt((pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));		
-			}else{
-				f[0]=0;
+			for(j=0; j<NY; j++){
+				//set up tridiagonal matrix
+				if(j==0){
+					if((i>(NO-1))&&(i<(NO+NC))){
+						am[j]=1;
+						bm[j]=-1;
+						cm[j]=0;
+						f[j]=-Vinf*dymin*((0.5*C-x[i])/sqrt((pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));
+					}else{
+						am[j]=1;
+						bm[j]=-1;
+						cm[j]=0;
+						f[j]=0;
+					}
+				}else if(j==NY-1){
+					am[j]=1;
+					bm[j]=0;
+					cm[j]=0;
+					f[j]=Vinf*x[i];
+				}else{
+					a=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
+					b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+					c=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
+					d=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+					am[j]=a+b+c+d;
+					bm[j]=-c;
+					cm[j]=-d;
+					f[j]=a*phi[i+1+j*NX+offset]+b*phi[i-1+j*NX+offset];
+				}
 			}
-			for(j=1; j<NY-1; j++){	
-				f[j]=-a*phi[i-1+j*NX+offset]-b*phi[i+1+j*NX+offset];
+			LU_Solver(NY);
+			for(j=0;j<NY;j++){
+				phi_new[i+j*NX+offset]=dm[j];
 			}
-			d=2/(y[NY-1]-y[NY-2])/(y[NY-1]-y[NY-3]);
-			f[NY-2] -= d*phi_new[i+(NY-1)*NX+offset];
-			//a=c, b=-a-b-c-d, c=d, d=f, 
-			cp[0]=-1;
-			dp[0]=f[0];
-			for(j=1; j<NY-1; j++){
-				c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
-				d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
-				cp[j] = d/(-(a+b+c+d)-c*cp[j-1]);
-				dp[j] = (f[j]-c*dp[j-1])/(-(a+b+c+d)-c*cp[j-1]);
+		}
+		//method 4
+		offset=3*NX*NY;
+		for(i=1; i<NX-1; i++){
+			for(j=0; j<NY; j++){
+				//set up tridiagonal matrix
+				if(j==0){
+					if((i>(NO-1))&&(i<(NO+NC))){
+						am[j]=1;
+						bm[j]=-1;
+						cm[j]=0;
+						f[j]=-Vinf*dymin*((0.5*C-x[i])/sqrt((pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));
+					}else{
+						am[j]=1;
+						bm[j]=-1;
+						cm[j]=0;
+						f[j]=0;
+					}
+				}else if(j==NY-1){
+					am[j]=1;
+					bm[j]=0;
+					cm[j]=0;
+					f[j]=Vinf*x[i];
+				}else{
+					a=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
+					b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+					c=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
+					d=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+					am[j]=a+b+c+d;
+					bm[j]=-c;
+					cm[j]=-d;
+					f[j]=a*phi[i+1+j*NX+offset]+b*phi_new[i-1+j*NX+offset];
+				}
 			}
-			phi_new[i+(NY-2)*NX+offset]=dp[NY-2];
-			for(j=NY-3;j>=0;j--){
-				phi_new[i+j*NX+offset]=dp[j]-cp[j]*phi_new[i+(j+1)*NX+offset];
+			LU_Solver(NY);
+			for(j=0;j<NY;j++){
+				phi_new[i+j*NX+offset]=dm[j];
 			}
 		}
 
-/*		//for boundary, ie, j=0;
-		for(i=1; i<NX-1; i++){
-			if((i>(NO-1))&&(i<(NC+NO))){
-		        	phi_new[i+offset]=phi[i+NX+offset]-Vinf*dymin*((0.5*C-x[i])/sqrt(pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2)));
-                	}else{
-                                phi_new[i+offset]=phi[i+NX+offset];
-                        }
-		}
-
-		for(j=1; j<NY-1; j++){
-			//set up f
-			c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
-                        d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
-			
-			for(i=1; i<NX-1; i++){
-				f[i]=-c*phi[i+(j-1)*NX+offset]-d*phi[i+(j+1)*NX+offset];
-				if(isnan(f[i])&&flag){
-a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
-                        b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-                        c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
-                        d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
-                        temp = fabs(-(a+b+c+d)*phi[i+j*NX+method* j*NX+method* ]+b i+1 +me  ]+c*phi -1)*NX+ d* ]+d* +( NX+method*  			printf(  d, k=%d\n" k); 
-					printf("f=%e\n",f[i]);
-					flag=0;
-				}	
-			}
-			a=2*Am/(x[2]-x[0])/(x[1]-x[0]);
-                        b=2*Am/(x[NX-1]-x[NX-3])/(x[NX-1]-x[NX-2]);
-			f[1]-=a*phi_new[j*NX+offset];
-			f[NX-2]-=b*phi_new[NX-1+j*NX+offset];
-			
-			//a=a, b=-a-b-c-d, c=b, d=f, 
-                        b=2*Am/(x[2]-x[0])/(x[2]-x[1]);
-			cp[1]=b/(-(a+b+c+d));
-			dp[1]=f[1]/(-(a+b+c+d));
-			for(i=1; i<NX-1; i++){
-				a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
-				b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-				cp[i] = b/(-(a+b+c+d)-b*cp[i-1]);
-				dp[i] = (f[i]-a*dp[i-1])/(-(a+b+c+d)-b*cp[i-1]);
-				if(isnan(cp[i])||isnan(dp[i])){
-					if(flag){
-						printf("i=%d, j=%d, k=%d\n",i,j,k);
-						printf("cp %e dp %e\n", cp[i],dp[i]);
-						printf("%e %e %e %e\n",a,b,c,d);
-						printf("%e\n",a+b+c+d+b*cp[i-1]);
-						printf("%e\n",f[i]);
-						flag=0;
-					}
-				}
-			}
-			phi_new[NX-2+j*NX+offset]=dp[NX-2];
-			for(i=NX-3;i>0;i--){
-				phi_new[i+j*NX+offset]=dp[i]-cp[i]*phi_new[i+1+j*NX+offset];
-				if(isnan(phi_new[i])){
-					if(flag){
-						printf("i=%d, j=%d, k=%d\n",i,j,k);
-						printf("cp %e dp %e phi %e\n", cp[i],dp[i],phi_new[i+j*NX+offset]);
-						printf("%e %e %e %e\n",a,b,c,d);
-						printf("%e\n",a+b+c+d+b*cp[i-1]);
-						printf("%e\n",f[i]);
-						flag=0;
-					}
-				}
-			}
-		}
-*/		//method 4
-//		offset=3* 
 		//method 5
-//		offset=4* 
-//		if((k&0x1)==0){
-			//ydir
-//		}else{
-			//xdir
-		
-//		}
-		
-		
+		offset=4*NX*NY;
+		for(i=1; i<NX-1; i++){
+			for(j=0; j<NY; j++){
+				//set up tridiagonal matrix
+				if(j==0){
+					if((i>(NO-1))&&(i<(NO+NC))){
+						am[j]=1;
+						bm[j]=-1;
+						cm[j]=0;
+						f[j]=-Vinf*dymin*((0.5*C-x[i])/sqrt((pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));
+					}else{
+						am[j]=1;
+						bm[j]=-1;
+						cm[j]=0;
+						f[j]=0;
+					}
+				}else if(j==NY-1){
+					am[j]=1;
+					bm[j]=0;
+					cm[j]=0;
+					f[j]=Vinf*x[i];
+				}else{
+					a=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
+					b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+					c=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
+					d=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+					am[j]=a+b+c+d;
+					bm[j]=-c;
+					cm[j]=-d;
+					f[j]=a*phi[i+1+j*NX+offset]+b*phi[i-1+j*NX+offset];
+				}
+			}
+			LU_Solver(NY);
+			for(j=0;j<NY;j++){
+				phi_new[i+j*NX+offset]=dm[j];
+			}
+		}
+
+		for(i=0; i<NX; i++){
+			phi[i+(NY-1)*NX+offset]=Vinf*x[i];
+		}
+		for(j=1; j<NY-1; j++){
+			for(i=0; i<NX; i++){
+				if(i==0||i==NX-1){
+					am[i]=1;
+					bm[i]=0;
+					cm[i]=0;
+					f[i]=Vinf*x[i];
+				}else{
+					a=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
+					b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+					c=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
+					d=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+					am[i]=a+b+c+d;
+					bm[i]=-a;
+					cm[i]=-b;
+					f[i]=c*phi_new[i+(j+1)*NX+offset]+d*phi_new[i+(j-1)*NX+offset];
+				}
+			}
+			LU_Solver(NX);
+			for(i=0;i<NX;i++){
+				phi[i+j*NX+offset]=dm[i];
+			}
+		}
+		for(i=0; i<NX; i++){
+			if((i>(NO-1))&&(i<(NC+NO))){
+				phi[i+offset]=phi_new[i+NX+offset]-Vinf*dymin*((0.5*C-x[i])/sqrt((pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));		
+			}else{
+				phi[i+offset]=phi_new[i+NX+offset];
+			}
+		}
 		//update phi
-		for(l=0; l<N_METHOD; l++){
+		for(l=0; l<N_METHOD-1; l++){
 			for(j=0; j<NY; j++){
 				for(i=0; i<NX; i++){
-					phi[i+j*NX+l* j*NX+l* ];   
+					phi[i+j*NX+l*NX*NY]=phi_new[i+j*NX+l*NX*NY];
 				}
 			}
 		}
-
-	}
-}
-
-void Calculate_residual_old(int method, int time){
-	int i, j;
-	double a, b, c, d, sum, temp, temp1, temp2;
-	sum=0;
-	for(i=1; i<NX-1; i++){
-		for(j=1; j<NY-1; j++){
-			temp = fabs(phi_new[i+j*NX+method* +method* ]);   
-			sum = (sum>temp) ? sum : temp;
-		
+		for(l=0; l<N_METHOD; l++){
+			Calculate_residual(l,k);
 		}
 	}
-	residual[time+method*N_IT] = sum;
 }
+
 void Calculate_residual(int method, int time){
 	int i, j;
-	double a, b, c, d, sum, temp, temp1, temp2;
+	double a, b, c, d, sum, temp, temp1, temp2, temp3,temp4;
 	sum=0;
 	for(i=1; i<NX-1; i++){
 		for(j=1; j<NY-1; j++){
-			a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
-			b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-			c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
-			d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
-			temp = fabs(-(a+b+c+d)*phi[i+j*NX+method* j*NX+method* ]+b i+1 +me  ]+c*phi -1)*NX+ d* ]+d* +( NX+method*     
+			temp1=(phi[i+1+j*NX+method*NX*NY]-phi[i+j*NX+method*NX*NY])/(x[i+1]-x[i]);
+			temp2=(phi[i+j*NX+method*NX*NY]-phi[i-1+j*NX+method*NX*NY])/(x[i]-x[i-1]);
+			temp3=2*Am*(temp1-temp2)/(x[i+1]-x[i-1]);
+			temp1=(phi[i+(j+1)*NX+method*NX*NY]-phi[i+j*NX+method*NX*NY])/(y[j+1]-y[j]);
+			temp2=(phi[i+j*NX+method*NX*NY]-phi[i+(j-1)*NX+method*NX*NY])/(y[j]-y[j-1]);
+			temp4=2*(temp1-temp2)/(y[j+1]-y[j-1]);
+//			sum = (sum > fabs(temp3+temp4)? sum : fabs(temp3+temp4));
+			temp = fabs(temp3+temp4);			
 /*
-			temp1 = 2*Am*((phi[i+1+j*NX+method* +method* ])/ 1]- \ 
-				     -(phi[i+j*NX+method* NX+method* ])/ -x[ )/( ]-x[i-1]);
-			temp2 = 2*((phi[i+(j+1)*NX+method* +method* ])/ 1]- \ 
-			          -(phi[i+j*NX+method* )*NX+method* ])/ -y[ )/( ]-y[j-1]);
+			a=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
+			b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+			c=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
+			d=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+			temp = fabs(-(a+b+c+d)*phi[i+j*NX+method*NX*NY]+a*phi[i+1+j*NX+method*NX*NY]+b*phi[i-1+j*NX+method*NX*NY]+c*phi[i+(j+1)*NX+method*NX*NY]+d*phi[i+(j-1)*NX+method*NX*NY]);
+
+			temp1 = 2*Am*((phi[i+1+j*NX+method*NX*NY]-phi[i+j*NX+method*NX*NY])/(x[i+1]-x[i])\
+				     -(phi[i+j*NX+method*NX*NY]-phi[i-1+j*NX+method*NX*NY])/(x[i]-x[i-1]))/(x[i+1]-x[i-1]);
+			temp2 = 2*((phi[i+(j+1)*NX+method*NX*NY]-phi[i+j*NX+method*NX*NY])/(y[j+1]-y[j])\
+			          -(phi[i+j*NX+method*NX*NY]-phi[i+(j-1)*NX+method*NX*NY])/(y[j]-y[j-1]))/(y[j+1]-y[j-1]);
 			temp = fabs(temp1 + temp2);
 */			sum = (sum>temp) ? sum : temp;
 		
@@ -326,18 +383,18 @@ void Calculate_CP(){
 	FILE *in2;
 	int i,j;
 	double u,v,p;
-	in2 = fopen("cp.txt","w");
+	in2 = fopen("2d_cp.txt","w");
 	for(j=0; j<N_METHOD; j++){
 		for(i=0;i<NX;i++){
 			if(i==0){
-				u=(phi[i+1+j* )/ 1]- ; 
+				u=(phi[i+1+j*NX*NY]-phi[i+j*NX*NY])/(x[i+1]-x[i]);
 			}else if(i==NX-1){
-				u=(phi[i+j*  ])/ -x[ ; 
+				u=(phi[i+j*NX*NY]-phi[i-1+j*NX*NY])/(x[i]-x[i-1]);
 
 			}else{
-				u=(phi[i+1+j*  ])/ 1]- ]); 
+				u=(phi[i+1+j*NX*NY]-phi[i-1+j*NX*NY])/(x[i+1]-x[i-1]);
 			}
-			v=(phi[i+NX+j* )/ -y[  
+			v=(phi[i+NX+j*NX*NY]-phi[i+j*NX*NY])/(y[1]-y[0]);
 			p=Pinf*pow((1-0.5*(Gm-1)*Minf*Minf*((u*u+v*v)/(Vinf*Vinf)-1)),Gm/(Gm-1));
 			fprintf(in2,"%e ",2*(Pinf-p)/Rhoinf/Vinf/Vinf);
 		}
@@ -377,15 +434,33 @@ void Save_Result(int time){
 			}
 			fprintf(pFile, "\n");
 		}
-		in2 = fopen("residual.txt","w");
+		in2 = fopen("2d_residual.txt","w");
 		for(k=0; k<N_METHOD; k++){
 			for(i=0; i<N_IT; i++){
-				fprintf(in2, "%e ", residual[i+k*N_METHOD]);
+				fprintf(in2, "%e ", residual[i+k*N_IT]);
 			}
 			fprintf(in2,"\n");
 		}
 		fclose(in2);
 	}
+}
+
+void LU_Solver(int N){
+	int i;
+	bp[0]=am[0];
+	for(i=1; i<N; i++){
+		cp[i]=cm[i]/bp[i-1];
+		bp[i]=am[i]-cp[i]*bm[i-1];
+	}
+	dp[0]=f[0];
+	for(i=1; i<N; i++){
+		dp[i]=f[i]-cp[i]*dp[i-1];
+	}
+	dm[N-1]=dp[N-1]/bp[N-1];
+	for(i=N-2; i>=0; i--){
+		dm[i] = (dp[i]-bm[i]*dm[i+1])/bp[i];
+	}
+
 }
 
 void Print_Residual(){
@@ -394,34 +469,34 @@ void Print_Residual(){
 	int mx[300],my[300],ml[300],index=0;
 	FILE *in;
 
-	in=fopen("residual_map.txt", "w");
-	for(l=0; l<2; l++){
+	in=fopen("2d_residual_map.txt", "w");
+	for(l=0; l<N_METHOD; l++){
 		for(j=0; j<NY; j++){
-                        c=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
-                        d=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
 			for(i=0; i<NX; i++){
-				if(isnan(phi[i+NX*j+l* 
-					printf("phi nan at (x,y) = (%d, %d) with method %d, total index=%d\n",i, j, l, i+NX*j+l* 
+				if(isnan(phi[i+NX*j+l*NX*NY])){
+					printf("phi nan at (x,y) = (%d, %d) with method %d, total index=%d\n",i, j, l, i+NX*j+l*NX*NY);	
 				}
 				if(i==0||i==NX-1||j==NY-1){
 					cases=0;
-					temp=fabs(Vinf*x[i]-phi[i+NX*j+l* 
+					temp=fabs(Vinf*x[i]-phi[i+NX*j+l*NX*NY]);
 				}else if(j==0){
 					if(i>(NO-1) && i<NC+NO){
 						cases=1;
-						temp=fabs((phi[i+NX+l* )- dym 0.5 i])/sqrt(pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));
+						temp=fabs((phi[i+NX+l*NX*NY]-phi[i+l*NX*NY])-Vinf*dymin*((0.5*C-x[i])/sqrt(pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));
 					}else{
 						cases=2;
-						temp=fabs(phi[i+NX+l* );   
+						temp=fabs(phi[i+NX+l*NX*NY]-phi[i+l*NX*NY]);
 					}
 				}else{
 					cases=3;
-					a=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
-                        		b=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-                        		temp = fabs(-(a+b+c+d)*phi[i+j*NX+l* j*NX+l* ]+b i+1 +l* phi -1)*NX+ d*phi[i +l* ]);     
+                        		a=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
+					b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+                        		c=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
+                        		d=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
+                        		temp = fabs(-(a+b+c+d)*phi[i+j*NX+l*NX*NY]+a*phi[i+1+j*NX+l*NX*NY]+b*phi[i-1+j*NX+l*NX*NY]+c*phi[i+(j+1)*NX+l*NX*NY]+d*phi[i+(j-1)*NX+l*NX*NY]);
 				}
-				if(isnan(temp)){
-					printf("phi=%e temp nan at (x,y) = (%d, %d), case %d with method %d, total index=%d\n", phi[i+j*NX+l* es, l, i+NX*j+l* );	   
+/*				if(isnan(temp)){
+					printf("phi=%e temp nan at (x,y) = (%d, %d), case %d with method %d, total index=%d\n", phi[i+j*NX+l*NX*NY], i, j, cases, l, i+NX*j+l*NX*NY);	
 				}
 				if(temp>100){
 					mx[index]=i;
@@ -430,7 +505,7 @@ void Print_Residual(){
 					index++;
 					printf("%d, %d, %d, %e\n",i,j,l,temp);
 				}
-				fprintf(in, "%e ", temp);
+*/				fprintf(in, "%e ", temp);
 			}
 		}
 		fprintf(in, "\n");
@@ -447,4 +522,9 @@ void Free_Memory(){
 	free(cp);
 	free(f);
 	free(dp);
+	free(bp);
+	free(am);
+	free(bm);
+	free(cm);
+	free(dm);
 }

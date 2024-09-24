@@ -7,7 +7,7 @@
 #define Gm 1.4
 #define C 1.0
 #define TH 0.06
-#define Pinf 1.0
+#define Pinf (1.0/Gm/Minf/Minf)
 #define Rhoinf 1.0 
 #define ainf (sqrt(Gm*Pinf/Rhoinf))
 #define Vinf (Minf*ainf)
@@ -30,6 +30,7 @@ void Create_Grid();
 void Interation();
 void Calculate_residual(int time);
 void Calculate_CP();
+void Calculate_Mach();
 void LU_Solver(int N);
 double Calculate_Kappa(int N, double length, double delta);
 void Print_Residual();
@@ -49,8 +50,9 @@ int main(){
 	Interation();
 	time++;
 	Save_Result(time);
-	Print_Residual();
+//	Print_Residual();
 	Calculate_CP();
+	Calculate_Mach();
 	fclose(pFile);
 	Free_Memory();
 
@@ -142,7 +144,7 @@ void Interation(){
 					cm[j]=0;
 					f[j]=1.0;
 				}else{
-					phi1d=(phi[i+1+j*NX]-phi[i-1+j*NX])/(x[i+1]-x[i-1]);
+					phi1d=(phi[i+1+j*NX]-phi_new[i-1+j*NX])/(x[i+1]-x[i-1]);
 					Am1d=1-Minf*Minf-phi1d*(Gm+1)*Minf*Minf/Vinf;
 					mu1d=(Am1d>0)?0:1;
 					a1=2/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
@@ -154,18 +156,19 @@ void Interation(){
 						am[j]=-Am1d*(a1+b1)-c1-d1;
 						bm[j]=c1;
 						cm[j]=d1;
-						f[j]=-Am1d*a1*phi[i+1+j*NX]-Am1d*b1*phi[i-1+j*NX];
+						f[j]=-Am1d*a1*phi[i+1+j*NX]+Am1d*b1*phi_new[i-1+j*NX];
 					}else{
-						phi2d=(phi[i+j*NX]-phi[i-2+j*NX])/(x[i]-x[i-2]);
+						phi2d=(phi[i+j*NX]-phi_new[i-2+j*NX])/(x[i]-x[i-2]);
 						Am2d=1-Minf*Minf-phi2d*(Gm+1)*Minf*Minf/Vinf;
 						mu2d=(Am2d>0)?0:1;
 						a2=2/(x[i]-x[i-2])/(x[i]-x[i-1]);
 						b2=2/(x[i]-x[i-2])/(x[i-1]-x[i-2]);
 
-						am[j]=-((1-mu1d)*Am1d*(a1+b1)-mu2d*Am2d*a2+c1+d1);
+						am[j]=-((1-mu1d)*Am1d*(a1+b1)-mu2d*Am2d*a2+(c1+d1));
 						bm[j]=c1;
 						cm[j]=d1;
-						f[j]=-((mu2d*Am2d*b2)*phi[i-2+j*NX]+((1-mu1d)*Am1d*b1-mu2d*Am2d*(a2+b2))*phi[i-1+j*NX]+((1-mu1d)*Am1d*a1)*phi[i+1+j*NX]);
+						f[j]=-((mu2d*Am2d*b2)*phi_new[i-2+j*NX]+((1-mu1d)*Am1d*b1-mu2d*Am2d*(a2+b2))*phi_new[i-1+j*NX]+((1-mu1d)*Am1d*a1)*phi[i+1+j*NX]);
+
 					}
 				}
 			}
@@ -236,6 +239,38 @@ void Calculate_CP(){
 	fclose(in2);
 
 }
+
+void Calculate_Mach(){
+	FILE *in2;
+	int i,j;
+	double u,v,sp;
+	in2 = fopen("mach.txt","w");
+	for(j=0; j<NY; j++){
+		for(i=0;i<NX;i++){
+			if(i==0){
+				u=Vinf+(phi[i+1+j*NX]-phi[i+j*NX])/(x[i+1]-x[i]);
+			}else if(i==NX-1){
+				u=Vinf+(phi[i+j*NX]-phi[i-1+j*NX])/(x[i]-x[i-1]);
+			}else{	
+				u=Vinf+(phi[i+1+j*NX]-phi[i-1+j*NX])/(x[i+1]-x[i-1]);
+			}
+			if(j==0){
+				v=(phi[i+(j+1)*NX]-phi[i+j*NX])/(y[j+1]-y[j]);
+			}else if(j==NY-1){
+				v=(phi[i+j*NX]-phi[i+(j-1)*NX])/(y[j]-y[j-1]);
+			}else{
+				v=(phi[i+(j+1)*NX]-phi[i+(j-1)*NX])/(y[j+1]-y[j-1]);
+		
+			}
+			sp=sqrt(u*u+v*v);
+		fprintf(in2,"%e ",sp/ainf);
+		}
+	}
+	fprintf(in2,"\n");
+	fclose(in2);
+
+}
+
 void Save_Result(int time){
 	int i, j, k;
 	FILE* in2;

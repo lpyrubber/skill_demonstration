@@ -8,10 +8,10 @@
 #define N 41
 #define N_STEP 10
 #define N_METHOD 2
-#define dx L/(N-1)
+#define dx (float)(L/(N-1))
 #define C 1
-#define CFL 0.9
-#define dt CFL*dx/C
+#define CFL 1.0
+#define dt (float)(CFL*dx/C)
 
 void Allocate_Memory();
 void Initial();
@@ -20,12 +20,12 @@ void Update_U();
 void Save_Result(int time);
 void Free_Memory();
 
-float *u, *u_new, *Gamma, *v, *f;
+float *u, *u_new, *am, *bm, *cm, *bp, *cp, *dp, *v, *f;
 FILE *pFile;
 
 int main(){
 	int i, time=0;
-	pFile = fopen("data.txt","w");
+	pFile = fopen("implicit_data.txt","w");
 	Allocate_Memory();
 	Initial();
 	Save_Result(time);
@@ -42,9 +42,14 @@ int main(){
 
 
 void Allocate_Memory(){
-	v = (float*)malloc(N_METHOD * N * sizeof(float));
-	Gamma = (float*)malloc(N_METHOD * N * sizeof(float));
 	f = (float*)malloc(N_METHOD * N * sizeof(float));
+	am = (float*)malloc(N_METHOD * N * sizeof(float));
+	bm = (float*)malloc(N_METHOD * N * sizeof(float));
+	cm = (float*)malloc(N_METHOD * N * sizeof(float));
+	bp = (float*)malloc(N * sizeof(float));
+	cp = (float*)malloc(N * sizeof(float));
+	dp = (float*)malloc(N * sizeof(float));
+
 	u = (float*)malloc(N_METHOD * N * sizeof(float));
 	u_new = (float*)malloc(N_METHOD * N * sizeof(float));
 }
@@ -53,16 +58,34 @@ void Initial(){
 	int i = 0, j = 0, offset;
 	for( i = 0; i < N; i++){
 		if(i*dx < 0.5){
-			u[i] = 1;		//Explicit backward
+			u[i] = 1;		//Implicit central
 			u[i + N] = 1;		//Explicit forward
 		}else{
-			u[i] = 0.5;		//Explicit backward
+			u[i] = 0.5;		//Implicit backward
 			u[i + N] = 0.5;		//Explicit forward
 		}
-		Gamma[i] = 0;
-		Gamma[i + N] = 0;
-		v[i] = 0;
-		v[i + N] = 0;
+		if(i==0){
+			am[i]= 1;
+			am[i+N]= 1;
+			bm[i]= 0;
+			bm[i+N]= 0;
+			cm[i]=  0;
+			cm[i+N]= 0;
+		}else if(i==N-1){
+			am[i]= 1 + C * dt / dx;
+			am[i+N] = 1 + C * dt / dx;
+			bm[i] = 0;
+			bm[i+N] = 0;
+			cm[i] = -1* C * dt / dx;
+			cm[i+N] = -1 * C * dt / dx;
+		}else{
+			am[i]=1;
+			am[i+N]=1;
+			bm[i]= 0.5 * C * dt / dx;
+			bm[i+N]= 0.25 * C * dt / dx;
+			cm[i]= - 0.5 * C * dt / dx;
+			cm[i+N]= - 0.25 * C * dt / dx;
+		}
 	}
 	for(i = 1; i < N-1; i++){
 		//Implicit central
@@ -70,33 +93,37 @@ void Initial(){
 		//Crank-Nicolson
 		f[i + N] = u[i + N] - 0.25 * C * dt / dx * (u[i + N + 1] - u[i + N - 1]);
 	}
+	f[0] = 1;
+	f[N] = 1;
 	
-	f[1] -= -0.5 * C * dt / dx * u[0];
-	f[N + 1 ] -= -0.25 * C * dt /dx * u[N];
+	f[N - 1] = u[N - 1];
+	f[N - 1 + N] = u[N - 1 + N];
 
 }
 void Compute_flux(){
 	int i, j;
 
-	Gamma[N - 1] = 0; 
-	Gamma[N + N - 1] = 0;
-	for (i = N - 2; i > 0; i--){
-		Gamma[i] = - 0.5 * C * dt / dx / ( 1 - 0.5 * C * dt * Gamma[i]);
-		Gamma[i + N] = - 0.25 * C * dt / dx / ( 1 - 0.25 * C * dt * Gamma[i + N + 1]);
-		
-		v[i] = (f[i] - 0.5 * C * dt / dx * v[i + 1]) / (1 - 0.5 * C * dt * Gamma[i + 1]) ;
-		v[i + N] = (f[i + N] - 0.25 * C * dt / dx * v[i + N + 1]) / (1 - 0.25 * C * dt * Gamma[i + N + 1]) ;
-	}
-	u_new[1] = v[1];
-	for (i = 2; i < N - 1; i++){
-		u_new[i] = v[i] - Gamma[i] * u_new[i - 1];
-		u_new[i + N] = v[i + N] - Gamma[i + N] * u_new[i + N - 1];
+	for(j=0;j<N_METHOD;j++){
+		bp[0]=am[0+j*N];
+		for(i=1; i<N; i++){
+			cp[i]=cm[i+j*N]/bp[i-1];
+			bp[i]=am[i+j*N]-cp[i]*bm[i-1+j*N];
+		}
+		dp[0]=f[0+j*N];
+		for(i=1; i<N; i++){
+			dp[i]=f[i+j*N]-cp[i]*dp[i-1];
+		}
+		u_new[N-1+j*N]=dp[N-1]/bp[N-1];
+		for(i=N-2; i>=0; i--){
+			u_new[i+j*N] = (dp[i]-bm[i+j*N]*u_new[i+1+j*N])/bp[i];
+		}
 	}
 }
+
 void Update_U(){
 	int i, j, offset;
 	//update old U
-	for(i = 1; i < N-1; i++){
+	for(i = 0; i < N; i++){
 		for(j = 0; j < N_METHOD; j++){
 			u[ i + j * N] = u_new[ i + j * N];
 		}
@@ -109,8 +136,10 @@ void Update_U(){
 		f[i + N] = u[i + N] - 0.25 * C * dt / dx * (u[i + N + 1] - u[i + N - 1]);
 	}
 	
-	f[1] -= -0.5 * C * dt / dx * u[0];
-	f[N + 1 ] -= -0.25 * C * dt /dx * u[N];
+	f[0] = u[0];
+	f[N] = u[N];
+	f[N - 1] = u[N-1];
+	f[N - 1 + N] = u[N - 1 + N];
 
 }
 void Save_Result(int time){
@@ -137,7 +166,11 @@ void Save_Result(int time){
 void Free_Memory(){
 	free(u);
 	free(u_new);
-	free(Gamma);
-	free(v);
+	free(am);
+	free(bm);
+	free(cm);
+	free(bp);
+	free(cp);
+	free(dp);
 	free(f);
 }

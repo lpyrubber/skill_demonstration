@@ -8,10 +8,10 @@
 #define N 41
 #define N_STEP 10
 #define N_METHOD 9
-#define dx L/(N-1)
+#define dx (float)(L/(N-1))
 #define C 1
-#define CFL 0.9
-#define dt CFL*dx/C
+#define CFL 1.0
+#define dt (float)(CFL*dx/C)
 
 void Allocate_Memory();
 void Initial();
@@ -25,7 +25,7 @@ FILE *pFile;
 
 int main(){
 	int i, time=0;
-	pFile = fopen("data.txt","w");
+	pFile = fopen("explicit_data.txt","w");
 	Allocate_Memory();
 	Initial();
 	Save_Result(time);
@@ -100,7 +100,7 @@ void Compute_flux(){
 				u_k[i] = u[i + offset] - 0.125 * C * dt / dx * (u[i + offset + 1] - u[i + offset - 1]);
 				//warming-Beam
 				offset = 7 * N;
-				u_h[i] = u[i + offset] = 0.5 * C * dt / dx * (u[i + offset] - u[i + offset - 1]);
+				u_h[i] = u[i + offset] - 0.5 * C * dt / dx * (u[i + offset] - u[i + offset - 1]);
 				//Upwind
 				offset = 8 * N;
 				f[i] = 0.5 * C * (u[i + offset + 1] + u[i + offset]) - 0.5 * fabs(C) * (u[ i + offset + 1] - u[i + offset]);
