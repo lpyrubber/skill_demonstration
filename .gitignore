@@ -4,6 +4,8 @@
 *.run
 *.out
 *.exe
+*.png
+*.jpg
 *.ipynb
 .DS_store
 .Rhistory

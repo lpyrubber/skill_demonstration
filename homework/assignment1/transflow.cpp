@@ -1,4 +1,4 @@
-//exercise 5.5
+//exercise 6.1
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -33,7 +33,6 @@ void Calculate_CP();
 void Calculate_Mach();
 void LU_Solver(int N);
 double Calculate_Kappa(int N, double length, double delta);
-void Print_Residual();
 void Save_Result(int time);
 void Free_Memory();
 
@@ -42,7 +41,7 @@ FILE *pFile;
 
 int main(){
 	int i, time=0;
-	pFile = fopen("data.txt","w");
+	pFile = fopen("trans_data.txt","w");
 	Allocate_Memory();
 	Create_Grid();
 	Initial();
@@ -50,7 +49,6 @@ int main(){
 	Interation();
 	time++;
 	Save_Result(time);
-//	Print_Residual();
 	Calculate_CP();
 	Calculate_Mach();
 	fclose(pFile);
@@ -122,7 +120,6 @@ void Interation(){
 	int i, j, k, l;
 	double a1, b1, c1, d1, a2, b2, u, v, Am1d, Am2d, phi1d, phi2d, mu1d, mu2d;
 	for(k=0; k<N_IT; k++){
-		Calculate_residual(k);
 		for(i=1; i<NX-1; i++){
 			for(j=0; j<NY; j++){
 				//set up tridiagonal matrix
@@ -156,7 +153,7 @@ void Interation(){
 						am[j]=-Am1d*(a1+b1)-c1-d1;
 						bm[j]=c1;
 						cm[j]=d1;
-						f[j]=-Am1d*a1*phi[i+1+j*NX]+Am1d*b1*phi_new[i-1+j*NX];
+						f[j]=-Am1d*a1*phi[i+1+j*NX]-Am1d*b1*phi_new[i-1+j*NX];
 					}else{
 						phi2d=(phi[i+j*NX]-phi_new[i-2+j*NX])/(x[i]-x[i-2]);
 						Am2d=1-Minf*Minf-phi2d*(Gm+1)*Minf*Minf/Vinf;
@@ -182,8 +179,7 @@ void Interation(){
 				phi[i+j*NX]=phi_new[i+j*NX];
 			}
 		}
-		
-
+		Calculate_residual(k);
 	}
 }
 
@@ -222,7 +218,7 @@ void Calculate_CP(){
 	FILE *in2;
 	int i,j;
 	double u,v,p;
-	in2 = fopen("cp.txt","w");
+	in2 = fopen("trans_cp.txt","w");
 	for(i=0;i<NX;i++){
 		if(i==0){
 			u=Vinf+(phi[i+1]-phi[i])/(x[i+1]-x[i]);
@@ -244,7 +240,7 @@ void Calculate_Mach(){
 	FILE *in2;
 	int i,j;
 	double u,v,sp;
-	in2 = fopen("mach.txt","w");
+	in2 = fopen("trans_mach.txt","w");
 	for(j=0; j<NY; j++){
 		for(i=0;i<NX;i++){
 			if(i==0){
@@ -263,10 +259,9 @@ void Calculate_Mach(){
 		
 			}
 			sp=sqrt(u*u+v*v);
-		fprintf(in2,"%e ",sp/ainf);
+		fprintf(in2,"%e %e %e\n",sp/ainf, u, v);
 		}
 	}
-	fprintf(in2,"\n");
 	fclose(in2);
 
 }
@@ -301,7 +296,7 @@ void Save_Result(int time){
 			}
 		}
 		fprintf(pFile, "\n");
-		in2 = fopen("residual.txt","w");
+		in2 = fopen("trans_residual.txt","w");
 		
 		for(i=0; i<N_IT; i++){
 			fprintf(in2, "%e ", residual[i]);
@@ -327,41 +322,6 @@ void LU_Solver(int N){
 		dm[i] = (dp[i]-bm[i]*dm[i+1])/bp[i];
 	}
 
-}
-
-void Print_Residual(){
-/*	int i,j,l, cases=6;
-	double temp,a,b,c,d;
-	FILE *in;
-
-	in=fopen("residual_map.txt", "w");
-	for(j=0; j<NY; j++){
-		for(i=0; i<NX; i++){
-			if(i==0||i==NX-1||j==NY-1){
-				cases=0;
-				temp=fabs(Vinf*x[i]-phi[i+NX*j]);
-			}else if(j==0){
-				if(i>(NO-1) && i<NC+NO){
-					cases=1;
-					temp=fabs((phi[i+NX]-phi[i])-Vinf*dymin*((0.5*C-x[i])/sqrt(pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));
-				}else{
-					cases=2;
-					temp=fabs(phi[i+NX]-phi[i]);
-				}
-			}else{
-				cases=3;
-                       		a=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-				b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
-                       		c=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
-                       		d=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
-                       		temp = fabs(-(a+b+c+d)*phi[i+j*NX]+a*phi[i+1+j*NX]+b*phi[i-1+j*NX]+c*phi[i+(j+1)*NX]+d*phi[i+(j-1)*NX]);
-			}
-			fprintf(in, "%e ", temp);
-		}
-	}
-	fprintf(in, "\n");
-	fclose(in);
-*/
 }
 
 void Free_Memory(){
