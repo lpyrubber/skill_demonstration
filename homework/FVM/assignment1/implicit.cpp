@@ -59,10 +59,10 @@ void Initial(){
 	for( i = 0; i < N; i++){
 		if(i*dx < 0.5){
 			u[i] = 1;		//Implicit central
-			u[i + N] = 1;		//Explicit forward
+			u[i + N] = 1;	//Crank-Nicolson
 		}else{
-			u[i] = 0.5;		//Implicit backward
-			u[i + N] = 0.5;		//Explicit forward
+			u[i] = 0.5;		//Implicit central
+			u[i + N] = 0.5;	//Crank-Nicolson
 		}
 		if(i==0){
 			am[i]= 1;

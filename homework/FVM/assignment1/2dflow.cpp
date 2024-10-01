@@ -358,21 +358,8 @@ void Calculate_residual(int method, int time){
 			temp1=(phi[i+(j+1)*NX+method*NX*NY]-phi[i+j*NX+method*NX*NY])/(y[j+1]-y[j]);
 			temp2=(phi[i+j*NX+method*NX*NY]-phi[i+(j-1)*NX+method*NX*NY])/(y[j]-y[j-1]);
 			temp4=2*(temp1-temp2)/(y[j+1]-y[j-1]);
-//			sum = (sum > fabs(temp3+temp4)? sum : fabs(temp3+temp4));
 			temp = fabs(temp3+temp4);			
-/*
-			a=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-			b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
-			c=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
-			d=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
-			temp = fabs(-(a+b+c+d)*phi[i+j*NX+method*NX*NY]+a*phi[i+1+j*NX+method*NX*NY]+b*phi[i-1+j*NX+method*NX*NY]+c*phi[i+(j+1)*NX+method*NX*NY]+d*phi[i+(j-1)*NX+method*NX*NY]);
-
-			temp1 = 2*Am*((phi[i+1+j*NX+method*NX*NY]-phi[i+j*NX+method*NX*NY])/(x[i+1]-x[i])\
-				     -(phi[i+j*NX+method*NX*NY]-phi[i-1+j*NX+method*NX*NY])/(x[i]-x[i-1]))/(x[i+1]-x[i-1]);
-			temp2 = 2*((phi[i+(j+1)*NX+method*NX*NY]-phi[i+j*NX+method*NX*NY])/(y[j+1]-y[j])\
-			          -(phi[i+j*NX+method*NX*NY]-phi[i+(j-1)*NX+method*NX*NY])/(y[j]-y[j-1]))/(y[j+1]-y[j-1]);
-			temp = fabs(temp1 + temp2);
-*/			sum = (sum>temp) ? sum : temp;
+		sum = (sum>temp) ? sum : temp;
 		
 		}
 	}
@@ -464,9 +451,8 @@ void LU_Solver(int N){
 }
 
 void Print_Residual(){
-	int i,j,l, cases=6;
+	int i,j,l;
 	double temp,a,b,c,d;
-	int mx[300],my[300],ml[300],index=0;
 	FILE *in;
 
 	in=fopen("2d_residual_map.txt", "w");
@@ -477,35 +463,21 @@ void Print_Residual(){
 					printf("phi nan at (x,y) = (%d, %d) with method %d, total index=%d\n",i, j, l, i+NX*j+l*NX*NY);	
 				}
 				if(i==0||i==NX-1||j==NY-1){
-					cases=0;
 					temp=fabs(Vinf*x[i]-phi[i+NX*j+l*NX*NY]);
 				}else if(j==0){
 					if(i>(NO-1) && i<NC+NO){
-						cases=1;
 						temp=fabs((phi[i+NX+l*NX*NY]-phi[i+l*NX*NY])-Vinf*dymin*((0.5*C-x[i])/sqrt(pow(0.25*C*C/TH+0.25*TH,2)-pow(x[i]-0.5*C,2))));
 					}else{
-						cases=2;
 						temp=fabs(phi[i+NX+l*NX*NY]-phi[i+l*NX*NY]);
 					}
 				}else{
-					cases=3;
                         		a=2*Am/(x[i+1]-x[i-1])/(x[i+1]-x[i]);
-					b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
+								b=2*Am/(x[i+1]-x[i-1])/(x[i]-x[i-1]);
                         		c=2/(y[j+1]-y[j-1])/(y[j+1]-y[j]);
                         		d=2/(y[j+1]-y[j-1])/(y[j]-y[j-1]);
                         		temp = fabs(-(a+b+c+d)*phi[i+j*NX+l*NX*NY]+a*phi[i+1+j*NX+l*NX*NY]+b*phi[i-1+j*NX+l*NX*NY]+c*phi[i+(j+1)*NX+l*NX*NY]+d*phi[i+(j-1)*NX+l*NX*NY]);
 				}
-/*				if(isnan(temp)){
-					printf("phi=%e temp nan at (x,y) = (%d, %d), case %d with method %d, total index=%d\n", phi[i+j*NX+l*NX*NY], i, j, cases, l, i+NX*j+l*NX*NY);	
-				}
-				if(temp>100){
-					mx[index]=i;
-					my[index]=j;
-					ml[index]=l;
-					index++;
-					printf("%d, %d, %d, %e\n",i,j,l,temp);
-				}
-*/				fprintf(in, "%e ", temp);
+			fprintf(in, "%e ", temp);
 			}
 		}
 		fprintf(in, "\n");
