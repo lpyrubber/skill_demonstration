@@ -3,7 +3,7 @@
 /* Gives us high-resolution timers. */
 #define _POSIX_C_SOURCE 199309L
 #include <time.h>
-
+#include <omp.h>
 
 /* OSX timer includes */
 #ifdef __MACH__
@@ -55,7 +55,7 @@ int *label, *c_id;
 double *x, *sum_dis, *min_c, *distance_m;
 
 int main(int argc, char** argv){
-	int i,j,k;
+	int i,j,num;
 	if(argc<4) {
 		printf("Not enough of arguemt\n");
 		return 1;
@@ -67,24 +67,43 @@ int main(int argc, char** argv){
 	
 	N_c=atoi(argv[2]);
 	N_thread = atoi(argv[3]);
+
 	if(Load_File(argv[1])){
 		return 3;
 	}
 	printf("N_c =%d, N_thread = %d\n", N_c, N_thread);
-	Find_Distance();
-	//intialization
+	omp_set_dynamic(0);
+	omp_set_num_thread(N_thread);
+
 	for(i=0; i<N_c; i++){
 		c_id[i]=i;
-		min_c[i]=SUM_MAX;
+		
 	}
-	Label_Point();
-	for(i=0; i<N_IT; i++){
-		if(Find_Medroid()==0){
-			printf("Converged!!\n");
-			break;
+	num=(N_points+N_thread-1)/N_thread;
+	#pragma omp parallel
+	{
+		int tid=omp_get_thread_num();
+		double *local_min;
+		int *local_id;
+		int N_local=(tid==N_thread-1)?N_points-(N_thread-1)*num:num;
+		printf("tid=%d, N_local=%d\n",tid, N_local);
+
+		local_min=(double*)malloc(N_cluster*sizeof(double));
+		local_id=(int*)malloc(N_cluster*sizeof(double));
+
+		Find_Distance();
+		Label_Point(local_min);
+		for(i=0; i<N_IT; i++){
+			if(Find_Medroid()==0){
+				printf("Converged!!\n");
+				break;
+			}
+			Label_Point(local_min);
 		}
-		Label_Point();
+		free(local_id);
+		free(local_min);
 	}
+	
 	Save_Result();
 	Free_Memory();
 	return 0;
@@ -130,23 +149,30 @@ char Load_File(char *str){
 			return 3;
 		}
 	}
+	for(j=0; j<Dim; j++){
+		for(i=0; i<N_points; i++){
+			printf("%lf ",x[i+j*N_points]);
+		}
+		printf("\n");
+	}
 		
 	return 0;
 }
 
 void Find_Distance(){
 	int i, j, k;
+	#pragma omp for
 	for(i=0;i<N_points; i++){
-		for(j=i; j<N_points; j++){
+		for(j=0; j<N_points; j++){
 			distance_m[i+j*N_points]=0;
-			distance_m[j+i*N_points]=0;
 			for(k=0; k<Dim; k++){
 				distance_m[i+j*N_points]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
-				
-				distance_m[j+i*N_points]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
 			}
+//			printf("%lf ", distance_m[i+j*N_points]);
 		}
+//		printf("\n");
 	}
+
 }
 
 void Create_Memory(){
@@ -159,9 +185,15 @@ void Create_Memory(){
 	
 }
 
-void Label_Point(){
+void Label_Point(double *local_min, int time){
 	int i, j, k;
 	double sum;
+	if(time==0){
+		for(i=0; i<N_c;i++){
+			local_min[i]=0;
+		}
+	}
+	#pragma omp for
 	for(i=0; i<N_points; i++){
 		sum=SUM_MAX;
 		label[i]=-1;
@@ -170,26 +202,53 @@ void Label_Point(){
 				label[i]=j;
 				sum=distance_m[i+c_id[j]*N_points];
 			}
-		}	
+		}
+		local_min[label[i]]+=sum;	
 	}
-
+	#pragma omp master
+	for(i=0;i<N_c;i++){
+		min_c[i]=0;
+	}
+	#pragma omp barrier
+	#pragma omp critical MinUpdate
+	{
+		for(i=0; i<N_c;i++){
+			min_c[i]+=local_min[i];
+		}
+	}
 }
 
 int Find_Medroid(){
-	int flag=0;
+	int flag=0,temp=0;
 	int i,j,k;
+	#pragma omp barrier
+	for(i=0; i<N_c; i++){
+		local_min[i]=min_c[i];
+	}
+	
+	#pragma omp for private(temp);
 	for(i=0; i<N_points; i++){
 		sum_dis[i]=0;
-		for(j=i+1; j<N_points; j++){
+		for(j=0; j<N_points; j++){
 			if(label[i]==label[j]){
 				sum_dis[i]+=distance_m[i+j*N_points];
-				sum_dis[j]+=distance_m[i+j*N_points];
 			}
 		}
-		if(sum_dis[i]<min_c[label[i]]){
-			c_id[label[i]]=i;
-			min_c[label[i]]=sum_dis[i];
-			flag++;
+		if(sum_dis[i]<local_min[label[i]]){
+			local_id[label[i]]=i;
+			local_min[label[i]]=sum_dis[i];
+			temp++;
+		}
+	}
+	#pragma omp barrier
+	#pragma omp critical MedroidUpdate
+	{
+		flag+=temp;
+		for(i=0; i<N_c; i++){
+			if(local_min[i]<min_c[i]){
+				c_id[i]=local_id[i];
+				min_c[i]=local_min[i];
+			}
 		}
 	}
 	return flag;

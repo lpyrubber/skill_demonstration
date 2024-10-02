@@ -5,8 +5,7 @@
 
 
 #define LX    100.0
-#define R     2.0
-#define Theta 1.0
+#define Theta 0.5
 
 double *x;
 double *cx;
@@ -15,7 +14,7 @@ int Dim,N_cluster,N_points;
 
 
 int main(){
-	int i,num,it,j, Nx;
+	int i,num,it,j, Nx, offset;
 	double temp2;
 	FILE *in;
 	srand(time(NULL));
@@ -28,13 +27,15 @@ int main(){
 	cx = (double*)malloc(N_cluster*Dim*sizeof(double));
 	x = (double*)malloc(N_points*Dim*sizeof(double));
 	temp = (double*)malloc((Dim+1)*sizeof(double));
-	Nx=ceil(N_points/N_cluster);
+	Nx=(int)(N_points/N_cluster);
+	printf("Nx=%d\n",Nx);
 	for(i=0; i<N_cluster*Dim; i++){
 		cx[i]=(double)(LX*rand()/RAND_MAX);
 	}
+	offset=0;
 	for(i=0; i<N_cluster; i++){
 		it=0;
-		num=(i==N_cluster-1)? Nx : N_points-(N_cluster-1)*Nx;
+		num=(i<(N_points-Nx*N_cluster))?Nx+1 : Nx;
 		printf("num=%d,i=%d\n",num, i);
 		while(it<num){
 			temp[Dim]=0;
@@ -45,12 +46,13 @@ int main(){
 			temp2 = exp(-temp[Dim])/pow(sqrt(M_PI)*Theta,Dim);
 			if(rand()/RAND_MAX<temp2){
 				for(j=0; j<Dim;j++){
-					x[it+i*Nx+j*N_points]=temp[j];
+					x[it+offset+j*N_points]=temp[j];
 				}
 				it++;
 			}
 		}
-	}
+		offset+=num;
+	} 
 	in = fopen("data.txt","w");
 	fprintf(in, "%d %d\n",N_points,Dim);
 	printf("%d %d\n",N_points,Dim);
