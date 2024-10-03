@@ -138,12 +138,12 @@ void Find_Distance(){
 	int i, j, k;
 	double max=0;
 	for(i=0;i<N_points; i++){
-		for(j=i; j<N_points; j++){
+		for(j=0; j<N_points; j++){
 			distance_m[i+j*N_points]=0;
-			distance_m[j+i*N_points]=0;
+//			distance_m[j+i*N_points]=0;
 			for(k=0; k<Dim; k++){
 				distance_m[i+j*N_points]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);				
-				distance_m[j+i*N_points]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
+//				distance_m[j+i*N_points]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
 			}
 			distance_m[i+j*N_points]=sqrtf(distance_m[i+j*N_points]);
 			
@@ -156,7 +156,7 @@ void Create_Memory(){
 	sum_dis=(double*)malloc(N_points*sizeof(double));
 	min_c=(double*)malloc(N_c*sizeof(double));
 	distance_m=(double*)malloc(N_points*N_points*sizeof(double));
-	label=(int*)malloc(N_points*sizeof(int));
+	label=(int*)malloc(2*N_points*sizeof(int));
 	c_id=(int*)malloc(N_c*sizeof(int));
 	
 }
@@ -182,10 +182,10 @@ int Find_Medroid(){
 	int i,j,k;
 	for(i=0; i<N_points; i++){
 		sum_dis[i]=0;
-		for(j=i+1; j<N_points; j++){
+		for(j=0; j<N_points; j++){
 			if(label[i]==label[j]){
 				sum_dis[i]+=distance_m[i+j*N_points];
-				sum_dis[j]+=distance_m[i+j*N_points];
+//				sum_dis[j]+=distance_m[i+j*N_points];
 			}
 		}
 		if(sum_dis[i]<min_c[label[i]]){
@@ -199,10 +199,18 @@ int Find_Medroid(){
 
 void Save_Result(){
 	FILE *out;
-	int i;
+	int i,j;
 	out = fopen("label.txt","w");
 	for(i=0; i<N_points; i++){
 		fprintf(out, "%d\n",label[i]);
+	}
+	fclose(out);
+	out = fopen("medroid.txt","w");
+	for(i=0; i<N_c; i++){
+		for(j=0; j<Dim-1; j++){
+			fprintf(out, "%lf ",x[c_id[i]+j*N_points]);
+		}
+		fprintf(out,"%lf\n",x[c_id[i]+(Dim-1)*N_points]);
 	}
 	fclose(out);
 }
