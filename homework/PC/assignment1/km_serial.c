@@ -3,7 +3,7 @@
 /* Gives us high-resolution timers. */
 #define _POSIX_C_SOURCE 199309L
 #include <time.h>
-
+#include <math.h>
 
 /* OSX timer includes */
 #ifdef __MACH__
@@ -136,15 +136,17 @@ char Load_File(char *str){
 
 void Find_Distance(){
 	int i, j, k;
+	double max=0;
 	for(i=0;i<N_points; i++){
 		for(j=i; j<N_points; j++){
 			distance_m[i+j*N_points]=0;
 			distance_m[j+i*N_points]=0;
 			for(k=0; k<Dim; k++){
-				distance_m[i+j*N_points]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
-				
+				distance_m[i+j*N_points]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);				
 				distance_m[j+i*N_points]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
 			}
+			distance_m[i+j*N_points]=sqrtf(distance_m[i+j*N_points]);
+			
 		}
 	}
 }

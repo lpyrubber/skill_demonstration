@@ -17,7 +17,7 @@
 void Create_Memory();
 char Load_File(char *str);
 void Free_Memory();
-int Find_Medroid();
+int Find_Medroid(double *loacal_min, int *local_id);
 void Label_Point();
 void Save_Result();
 void Find_Distance();
@@ -73,32 +73,32 @@ int main(int argc, char** argv){
 	}
 	printf("N_c =%d, N_thread = %d\n", N_c, N_thread);
 	omp_set_dynamic(0);
-	omp_set_num_thread(N_thread);
+	omp_set_num_threads(N_thread);
 
 	for(i=0; i<N_c; i++){
 		c_id[i]=i;
 		
 	}
-	num=(N_points+N_thread-1)/N_thread;
+	num=N_points/N_thread;
 	#pragma omp parallel
 	{
 		int tid=omp_get_thread_num();
 		double *local_min;
 		int *local_id;
-		int N_local=(tid==N_thread-1)?N_points-(N_thread-1)*num:num;
+		int N_local=(tid<N_points-num*N_thread)?num+1:num;
 		printf("tid=%d, N_local=%d\n",tid, N_local);
 
-		local_min=(double*)malloc(N_cluster*sizeof(double));
-		local_id=(int*)malloc(N_cluster*sizeof(double));
+		local_min=(double*)malloc(N_c*sizeof(double));
+		local_id=(int*)malloc(N_c*sizeof(double));
 
 		Find_Distance();
-		Label_Point(local_min);
+		Label_Point();
 		for(i=0; i<N_IT; i++){
-			if(Find_Medroid()==0){
+			if(Find_Medroid(local_min,local_id)==0){
 				printf("Converged!!\n");
 				break;
 			}
-			Label_Point(local_min);
+			Label_Point();
 		}
 		free(local_id);
 		free(local_min);
@@ -185,14 +185,9 @@ void Create_Memory(){
 	
 }
 
-void Label_Point(double *local_min, int time){
+void Label_Point(){
 	int i, j, k;
 	double sum;
-	if(time==0){
-		for(i=0; i<N_c;i++){
-			local_min[i]=0;
-		}
-	}
 	#pragma omp for
 	for(i=0; i<N_points; i++){
 		sum=SUM_MAX;
@@ -203,22 +198,10 @@ void Label_Point(double *local_min, int time){
 				sum=distance_m[i+c_id[j]*N_points];
 			}
 		}
-		local_min[label[i]]+=sum;	
-	}
-	#pragma omp master
-	for(i=0;i<N_c;i++){
-		min_c[i]=0;
-	}
-	#pragma omp barrier
-	#pragma omp critical MinUpdate
-	{
-		for(i=0; i<N_c;i++){
-			min_c[i]+=local_min[i];
-		}
 	}
 }
 
-int Find_Medroid(){
+int Find_Medroid(double *local_min, int *local_id){
 	int flag=0,temp=0;
 	int i,j,k;
 	#pragma omp barrier
@@ -226,7 +209,7 @@ int Find_Medroid(){
 		local_min[i]=min_c[i];
 	}
 	
-	#pragma omp for private(temp);
+	#pragma omp for private(temp)
 	for(i=0; i<N_points; i++){
 		sum_dis[i]=0;
 		for(j=0; j<N_points; j++){
@@ -241,7 +224,7 @@ int Find_Medroid(){
 		}
 	}
 	#pragma omp barrier
-	#pragma omp critical MedroidUpdate
+	#pragma omp critical
 	{
 		flag+=temp;
 		for(i=0; i<N_c; i++){
