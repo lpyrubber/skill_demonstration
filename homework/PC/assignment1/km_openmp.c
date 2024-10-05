@@ -115,7 +115,7 @@ int main(int argc, char** argv){
 		while(flag && (i<N_IT)){
 			temp=Find_Medroid(tid);
 //			printf("temp=%d at %d\n",temp, tid);
-//			#pragma omp barrier
+			#pragma omp barrier
 			#pragma omp critical
 			{
 				flag&=temp;
@@ -126,7 +126,7 @@ int main(int argc, char** argv){
 			{
 				flag=!flag;
 			}
-//			#pragma omp barrier
+			#pragma omp barrier
 //			printf("final flag=%d at %d\n",flag, tid);
 			Label_Point(tid);
 			i++;
@@ -141,7 +141,7 @@ int main(int argc, char** argv){
 	printf("\n\nTime taken is %f\n",ft-it);
 	print_time(et-st);
 	Save_Result();
-//	Free_Memory();
+	Free_Memory();
 	
 	return 0;
 }
@@ -212,13 +212,13 @@ void Find_Distance(){
 	int i, j, k;
 	#pragma omp for
 	for(i=0; i<N_points; i++){
-		for(j=i; j<N_points; j++){
+		for(j=0; j<N_points; j++){
 			distance_m[i][j]=0;
 			for(k=0; k<Dim; k++){
 				distance_m[i][j]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
 			}
 			distance_m[i][j]=sqrtf(distance_m[i][j]);
-			distance_m[j][i]=distance_m[i][j];
+//			distance_m[j][i]=distance_m[i][j];
 		}
 	}
 }
@@ -227,7 +227,7 @@ void Label_Point(int tid){
 	int i, j, k;
 	float sum;
 	float temp;
-//	#pragma omp barrier
+	#pragma omp barrier
 	#pragma omp for
 	for(i=0; i<N_points; i++){
 		sum=SUM_MAX;
@@ -292,7 +292,7 @@ int Find_Medroid(int tid){
 				c_id[i]=local_id[i+tid*N_c];
 				min_c[i]=local_min[i+tid*N_c];
 				flag=0;
-//				printf("flag=%d\n at tid=%d\n",flag,tid);
+				printf("flag=%d\n at tid=%d\n",flag,tid);
 			}
 		}
 

@@ -182,6 +182,7 @@ void Find_Distance(){
 				distance_m[i][j]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
 			}
 			distance_m[i][j]=sqrtf(distance_m[i][j]);
+			distance_m[j][i]=distance_m[i][j];
 		}
 	}
 }
