@@ -362,6 +362,7 @@ void* Computation(void* input){
 			}
 			Label_Point(tid, num, tid);
 			i++;
+			pthread_barrier_wait(&barrier2);
 		}
 		printf("break at it=%d at %d\n",i-1, tid);
 		pthread_exit(0); 

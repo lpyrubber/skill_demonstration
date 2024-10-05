@@ -131,7 +131,7 @@ int main(int argc, char** argv){
 			Label_Point(tid);
 			i++;
 		}
-		printf("break at it=%d at %d\n",i-1, tid);
+		if(tid==0)	printf("break at it=%d\n",i-1);
 //		free(local_id);
 //		free(local_min);
 
@@ -212,13 +212,13 @@ void Find_Distance(){
 	int i, j, k;
 	#pragma omp for
 	for(i=0; i<N_points; i++){
-		for(j=0; j<N_points; j++){
+		for(j=i; j<N_points; j++){
 			distance_m[i][j]=0;
 			for(k=0; k<Dim; k++){
 				distance_m[i][j]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
 			}
 			distance_m[i][j]=sqrtf(distance_m[i][j]);
-//			distance_m[j][i]=distance_m[i][j];
+			distance_m[j][i]=distance_m[i][j];
 		}
 	}
 }
@@ -292,7 +292,7 @@ int Find_Medroid(int tid){
 				c_id[i]=local_id[i+tid*N_c];
 				min_c[i]=local_min[i+tid*N_c];
 				flag=0;
-				printf("flag=%d\n at tid=%d\n",flag,tid);
+//				printf("flag=%d\n at tid=%d\n",flag,tid);
 			}
 		}
 

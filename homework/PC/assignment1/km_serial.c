@@ -101,6 +101,7 @@ int main(int argc, char** argv){
 	flag=1;
 	while(flag&&i<N_IT){
 		flag=Find_Medroid();
+		flag=1;
 		Label_Point();
 		i++;
 	}

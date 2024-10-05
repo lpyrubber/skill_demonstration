@@ -7,6 +7,8 @@ endif
 
 DATA:
 	g++ data_generator.c -o datagen.exe
+SERIAL:
+	g++ km_serial.c -O3 -o serial.exe
 
 OPENMP:
 	g++ km_openmp.c $(MPCCFLAGS) -O3 -o test.run
