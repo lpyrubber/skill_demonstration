@@ -9,4 +9,4 @@ DATA:
 	g++ data_generator.c -o datagen.exe
 
 OPENMP:
-	g++ km_openmp.c $(MPCCFLAGS) -o test.run
+	g++ km_openmp.c $(MPCCFLAGS) -O3 -o test.run

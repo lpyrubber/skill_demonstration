@@ -13,6 +13,7 @@
 
 #define N_IT 20
 #define SUM_MAX 1e5
+#define USE_MATRIX 1
 
 void Create_Memory();
 char Load_File(char *str);
@@ -21,6 +22,9 @@ int Find_Medroid();
 void Label_Point();
 void Save_Result();
 static void print_time(double const seconds);
+#if USE_MATRIX
+void Find_Distance();
+#endif
 
 inline double Calculate_Distance(double *x, int i, int j, int Dim, int N_points){
 	double temp=0;
@@ -62,10 +66,12 @@ static inline double monotonic_seconds()
 int N_c, N_thread, N_points, Dim;
 int *label, *c_id;
 double *x, *sum_dis, *min_c;
-
+#if USE_MATRIX
+float **distance_m;
+#endif
 int main(int argc, char** argv){
-	int i,j,k;
-	double time;
+	int i,j,k, flag;
+	double st,et;
 	if(argc<4) {
 		printf("Not enough of arguemt\n");
 		return 1;
@@ -82,21 +88,25 @@ int main(int argc, char** argv){
 	}
 	printf("N_c =%d, N_thread = %d\n", N_c, N_thread);
 	//intialization
-	time=monotonic_seconds();
+	st=monotonic_seconds();
+#if USE_MATRIX
+		Find_Distance();
+#endif
 	for(i=0; i<N_c; i++){
 		c_id[i]=i;
 		min_c[i]=SUM_MAX;
 	}
 	Label_Point();
-	for(i=0; i<N_IT; i++){
-		if(Find_Medroid()==0){
-			printf("Converged at %d!!\n",i);
-			break;
-		}
+	i=0;
+	flag=1;
+	while(flag&&i<N_IT){
+		flag=Find_Medroid();
 		Label_Point();
+		i++;
 	}
-	time=monotonic_seconds();
-	print_time(time);
+	printf("break at %d\n",i-1);
+	et=monotonic_seconds();
+	print_time(et-st);
 	Save_Result();
 	Free_Memory();
 	return 0;
@@ -153,9 +163,29 @@ void Create_Memory(){
 	min_c=(double*)malloc(N_c*sizeof(double));
 	label=(int*)malloc(2*N_points*sizeof(int));
 	c_id=(int*)malloc(N_c*sizeof(int));
-	
+#if USE_MATRIX
+	int i;
+	distance_m=(float**)malloc(N_points*sizeof(float*));
+	for(i=0;i<N_points;i++){
+		distance_m[i]=(float*)malloc(N_points*sizeof(float));
+	}
+#endif	
 }
-
+#if USE_MATRIX
+void Find_Distance(){
+	int i, j, k;
+	#pragma omp for
+	for(i=0; i<N_points; i++){
+		for(j=i; j<N_points; j++){
+			distance_m[i][j]=0;
+			for(k=0; k<Dim; k++){
+				distance_m[i][j]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
+			}
+			distance_m[i][j]=sqrtf(distance_m[i][j]);
+		}
+	}
+}
+#endif
 void Label_Point(){
 	int i, j, k;
 	double sum,temp;
@@ -163,11 +193,19 @@ void Label_Point(){
 		sum=SUM_MAX;
 		label[i]=-1;
 		for(j=0; j<N_c; j++){
+#if USE_MATRIX
+			if(distance_m[i][c_id[j]]<sum){
+				label[i]=j;
+				sum=distance_m[i][c_id[j]];
+			}
+
+#else			
 			temp=Calculate_Distance(x,i,c_id[j],Dim,N_points);
 			if(temp<sum){
 				label[i]=j;
 				sum=temp;
 			}
+#endif
 		}	
 	}
 
@@ -176,13 +214,17 @@ void Label_Point(){
 int Find_Medroid(){
 	int flag=0;
 	int i,j,k;
-	double temp;
+	double temp=0;
 	for(i=0; i<N_points; i++){
 		sum_dis[i]=0;
 		for(j=0; j<N_points; j++){
 			if(label[i]==label[j]){
-				temp=Calculate_Distance(x,i,j,Dim,N_points);
+#if USE_MATRIX
+				sum_dis[i]+=distance_m[i][j];
+#else
+				temp=Calculate_Distance(x,i,j,Dim,N_points);		
 				sum_dis[i]+=temp;
+#endif						
 
 			}
 		}
@@ -192,7 +234,7 @@ int Find_Medroid(){
 			flag++;
 		}
 	}
-	return flag;
+	return (flag>0)?1:0;
 }
 
 void Save_Result(){
@@ -220,4 +262,11 @@ void Free_Memory(){
 	free(min_c);
 	free(label);
 	free(c_id);
+#if USE_MATRIX
+	int i;
+	for(i=0; i<N_points; i++){
+		free(distance_m[i]);
+	}
+	free(distance_m);
+#endif
 }
