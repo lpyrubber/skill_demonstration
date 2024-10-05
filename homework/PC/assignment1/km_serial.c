@@ -64,7 +64,7 @@ static inline double monotonic_seconds()
 }
 
 int N_c, N_thread, N_points, Dim;
-int *label, *c_id;
+int *label, *c_id, *n_list;
 double *x, *sum_dis, *min_c;
 #if USE_MATRIX
 float **distance_m;
@@ -164,6 +164,7 @@ void Create_Memory(){
 	min_c=(double*)malloc(N_c*sizeof(double));
 	label=(int*)malloc(2*N_points*sizeof(int));
 	c_id=(int*)malloc(N_c*sizeof(int));
+	n_list=(int*)malloc(N_c*sizeof(int));
 #if USE_MATRIX
 	int i;
 	distance_m=(float**)malloc(N_points*sizeof(float*));
@@ -191,6 +192,9 @@ void Find_Distance(){
 void Label_Point(){
 	int i, j, k;
 	double sum,temp;
+	for(i=0; i<N_c;i++){
+		n_list[i]=0;
+	}
 	for(i=0; i<N_points; i++){
 		sum=SUM_MAX;
 		label[i]=-1;
@@ -208,7 +212,8 @@ void Label_Point(){
 				sum=temp;
 			}
 #endif
-		}	
+		}
+		n_list[label[i]]++;	
 	}
 
 }
@@ -222,7 +227,7 @@ int Find_Medroid(){
 		for(j=0; j<N_points; j++){
 			if(label[i]==label[j]){
 #if USE_MATRIX
-				sum_dis[i]+=distance_m[i][j];
+				sum_dis[i]+=distance_m[i][j]/n_list[label[i]];
 #else
 				temp=Calculate_Distance(x,i,j,Dim,N_points);		
 				sum_dis[i]+=temp;
@@ -264,6 +269,7 @@ void Free_Memory(){
 	free(min_c);
 	free(label);
 	free(c_id);
+	free(n_list);
 #if USE_MATRIX
 	int i;
 	for(i=0; i<N_points; i++){

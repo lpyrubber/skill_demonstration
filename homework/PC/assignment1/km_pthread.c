@@ -267,7 +267,7 @@ int Find_Medroid(int tid, int num, int offset){
 		for(j=0; j<N_points; j++){
 			if(label[i]==label[j]){
 #if USE_MATRIX
-				sum_dis[i]+=distance_m[i][j];
+				sum_dis[i]+=distance_m[i][j]/N_points*N_c;
 #else
 				temp=Calculate_Distance(x,i,j,Dim,N_points);		
 				sum_dis[i]+=temp;
