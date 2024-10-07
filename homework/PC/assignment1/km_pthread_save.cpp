@@ -119,12 +119,12 @@ int main(int argc, char** argv){
 		info[2+3*i]=offset;
 		offset+=info[1+3*i];
 		ier=pthread_create(&pthreads[i], NULL, Computation, (void*)&info[3*i]);
-		printf("%d at %d creating\n",ier,i);
+//		printf("%d at %d creating\n",ier,i);
 	}
 	//end pthread here
 	for(i=0; i<N_thread; i++){
 		ier=pthread_join(pthreads[i],NULL);
-		printf("%d at %d joining\n",ier,i);
+//		printf("%d at %d joining\n",ier,i);
 	}
 	pthread_barrier_destroy(&barrier1);
 	pthread_barrier_destroy(&barrier2);
@@ -215,6 +215,23 @@ void Find_Distance( int tid, int num, int offset){
 			distance_m[i][j-i]=sqrtf(distance_m[i][j-i]);
 		}
 	}
+/*
+    long int N = 0.5*N_points*(N_points+1);
+    int ave = N/N_thread;
+    int step = (tid<(N-ave*N_points))?ave+1:ave;
+    int start = (tid<(N-ave*N_points))?(ave+1)*tid:N-(N_thread-tid)*ave;
+    long int ix,iy, i;
+	int k;
+    for(i=start;i<start+step;i++){
+		ix=0.5*((2*N_points-1)-sqrtf(4*N_points*N_points+4*N_points+1-8*(i)))+1;
+        iy=i-0.5*(2*N_points-ix+1)*(ix);
+        distance_m[ix][iy]=0;
+        for(k=0;k<Dim;k++){
+            distance_m[ix][iy]+=(x[ix+k*N_points]-x[(ix+iy)+k*N_points])*(x[ix+k*N_points]-x[(ix+iy)+k*N_points]);
+        }
+        distance_m[ix][iy]=sqrtf(distance_m[ix][iy]);
+    }
+*/
 }
 #endif
 
@@ -227,7 +244,6 @@ void Label_Point( int tid,  int num,  int offset){
     if(tid==0){
         for(i=0;i<N_c;i++){
             c_list[i].clear();
-			c_old[i]=c_id[i];
         }
     }
 	for(i=offset; i<(offset+num); i++){
@@ -253,20 +269,28 @@ void Label_Point( int tid,  int num,  int offset){
         local_list[label[i]].push_back(i);
 
 	}
+    pthread_barrier_wait(&barrier2);
     pthread_mutex_lock( &mutex1 );
 	for(i=0; i<N_c; i++){
 		c_list[i].insert(c_list[i].end(), local_list[i].begin(), local_list[i].end());
 		local_list[i].clear();
 	}
 	pthread_mutex_unlock( &mutex1 ); 
+    if(tid==0){
+        for(i=0;i<N_c;i++){
+            c_old[i]=c_id[i];
+        }
+    }
+
 }
 
 int Find_Medroid( int tid, int time){
 	int i,j,k, ip, jp, id_new, im, jm, offset, num, ave, flag;
-	double temp=0, sum, min;
+	double temp=0, sum, min, local;
 	flag=0;
 	for(i=0; i<N_c; i++){
         min_c[i]=SUM_MAX;
+		min=SUM_MAX;
         ave=c_list[i].size()/N_thread;
         num=(tid<(c_list[i].size()-ave*N_thread))?ave+1:ave;
         offset=(tid<(c_list[i].size()-ave*N_thread))?(ave+1)*tid:c_list[i].size()-(N_thread-tid)*ave;
@@ -284,13 +308,19 @@ int Find_Medroid( int tid, int time){
 			   	sum+=temp;
 #endif				
 		   	}
-            pthread_mutex_lock( &mutex2 );
-		    if(sum<min_c[i]){
-			   	min_c[i]=sum;
-			    c_id[i]=ip;
+
+		    if(sum<min){
+			   	min=sum;
+			    local=ip;
 			}
-			pthread_mutex_unlock( &mutex2 ); 
+
         }
+		pthread_mutex_lock( &mutex2 );
+		if(min<min_c[i]){
+			min_c[i]=min;
+			c_id[i]=local;
+		}
+		pthread_mutex_unlock( &mutex2 ); 
 	}
     pthread_barrier_wait(&barrier1);
     for(i=0; i<N_c; i++){
@@ -353,10 +383,8 @@ void* Computation(void* input){
 #endif
 		while(flag && (itt<N_IT)){   
             Label_Point(tid, num, offset);
-			printf("finish Label\n");
-//            pthread_barrier_wait(&barrier1);
+            pthread_barrier_wait(&barrier1);
 			flag=Find_Medroid(tid,itt);
-			printf("finish Medroid\n");
 			itt++;
 		}
 //		printf("break at it=%d at %d\n",itt, tid);

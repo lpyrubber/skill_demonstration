@@ -12,7 +12,7 @@
   #include <mach/mach_time.h>
 #endif
 
-#define USE_MATRIX 1
+#define USE_MATRIX 0
 #define N_IT 20
 #define SUM_MAX 1e7
 
@@ -66,8 +66,8 @@ static inline double monotonic_seconds()
 }
 
 int N_c, N_thread, N_points, Dim, flag, c_new;
-int *label, *c_id, *local_id, *info, *c_old;
-float *x, *sum_dis, *min_c, *local_min;
+int *label, *c_id, *info, *c_old;
+float *x, *sum_dis, *min_c;
 pthread_t *pthreads;
 pthread_mutex_t mutex1;
 pthread_mutex_t mutex2;
@@ -185,11 +185,9 @@ void Create_Memory(){
 	x=(float*)malloc(N_points*Dim*sizeof(float));
 	sum_dis=(float*)malloc(N_points*sizeof(float));
 	min_c=(float*)malloc(N_c*sizeof(float));
-	local_min=(float*)malloc(N_thread*N_c*sizeof(float));
 	label=(int*)malloc(N_points*sizeof(int));
 	c_id=(int*)malloc(N_c*sizeof(int));
     c_old=(int*)malloc(N_c*sizeof(int));
-	local_id=(int*)malloc(N_thread*N_c*sizeof(int));
 	info=(int*)malloc(N_thread*3*sizeof(int));
 	pthreads=(pthread_t*)malloc(N_thread*sizeof(pthread_t));
 	
@@ -205,33 +203,18 @@ void Create_Memory(){
 #if USE_MATRIX
 
 void Find_Distance( int tid, int num, int offset){
-	int i, j, k;
+	int i, j, k, ib, ix, iy;
 	for(i=offset; i<offset+num; i++){
-		for(j=i; j<N_points; j++){
-			distance_m[i][j-i]=0;
+		ib=(i%2)?((i%2)*(N_points-1)-(i/2)):((i%2)*(N_points-1)+(i/2));
+		for(j=ib; j<N_points; j++){
+			distance_m[ib][j-ib]=0;
 			for(k=0; k<Dim; k++){
-				distance_m[i][j-i]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
+				distance_m[ib][j-ib]+=(x[ib+k*N_points]-x[j+k*N_points])*(x[ib+k*N_points]-x[j+k*N_points]);
 			}
-			distance_m[i][j-i]=sqrtf(distance_m[i][j-i]);
+			distance_m[ib][j-ib]=sqrtf(distance_m[ib][j-ib]);
 		}
 	}
-/*
-    long int N = 0.5*N_points*(N_points+1);
-    int ave = N/N_thread;
-    int step = (tid<(N-ave*N_points))?ave+1:ave;
-    int start = (tid<(N-ave*N_points))?(ave+1)*tid:N-(N_thread-tid)*ave;
-    long int ix,iy, i;
-	int k;
-    for(i=start;i<start+step;i++){
-		ix=0.5*((2*N_points-1)-sqrtf(4*N_points*N_points+4*N_points+1-8*(i)))+1;
-        iy=i-0.5*(2*N_points-ix+1)*(ix);
-        distance_m[ix][iy]=0;
-        for(k=0;k<Dim;k++){
-            distance_m[ix][iy]+=(x[ix+k*N_points]-x[(ix+iy)+k*N_points])*(x[ix+k*N_points]-x[(ix+iy)+k*N_points]);
-        }
-        distance_m[ix][iy]=sqrtf(distance_m[ix][iy]);
-    }
-*/
+
 }
 #endif
 
@@ -304,7 +287,7 @@ int Find_Medroid( int tid, int time){
 		   		jm=(jp>ip)?jp:ip;
 		    	sum+=distance_m[im][jm-im]/c_list[i].size();
 #else
-			   	temp=Calculate_Distance(x,ip,jp,Dim,N_points)/c_list[i].size;		
+			   	temp=Calculate_Distance(x,ip,jp,Dim,N_points)/c_list[i].size();		
 			   	sum+=temp;
 #endif				
 		   	}
@@ -356,8 +339,6 @@ void Free_Memory(){
 	free(min_c);
 	free(label);
 	free(c_id);
-	free(local_id);
-	free(local_min);
 	free(info);
     free(c_old);
 	free(pthreads);
