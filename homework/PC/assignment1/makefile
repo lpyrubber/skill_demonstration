@@ -7,10 +7,12 @@ endif
 
 DATA:
 	g++ data_generator.c -o datagen.exe
+all:SERIAL OPENMP PTHREADS
+
 SERIAL:
-	g++ km_serial.c -O3 -o km_serial
+	g++ km_serial.cpp -O3 -o km_serial.exe
 
 OPENMP:
-	g++ km_openmp.c $(MPCCFLAGS) -O2 -o km_openmp
+	g++ km_openmp.cpp $(MPCCFLAGS) -O3 -o km_openmp.exe
 PTHREADS:
-	g++ km_pthread.c -O2 -o km_pthread
+	g++ km_pthread.cpp -O3 -o km_pthread.exe

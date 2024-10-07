@@ -4,6 +4,7 @@
 #define _POSIX_C_SOURCE 199309L
 #include <time.h>
 #include <math.h>
+#include <vector>
 
 /* OSX timer includes */
 #ifdef __MACH__
@@ -18,8 +19,8 @@
 void Create_Memory();
 char Load_File(char *str);
 void Free_Memory();
-int Find_Medroid();
-void Label_Point();
+int Find_Medroid(std::vector<std::vector<int> >& c_list);
+void Label_Point(std::vector<std::vector<int> >& c_list );
 void Save_Result();
 static void print_time(double const seconds);
 #if USE_MATRIX
@@ -86,6 +87,7 @@ int main(int argc, char** argv){
 	if(Load_File(argv[1])){
 		return 3;
 	}
+	std::vector<std::vector<int> > c_list(N_c);
 	printf("N_c =%d, N_thread = %d\n", N_c, N_thread);
 	//intialization
 	st=monotonic_seconds();
@@ -96,13 +98,12 @@ int main(int argc, char** argv){
 		c_id[i]=i;
 		min_c[i]=SUM_MAX;
 	}
-	Label_Point();
+	Label_Point(c_list);
 	i=0;
 	flag=1;
 	while(flag&&i<N_IT){
-		flag=Find_Medroid();
-		flag=1;
-		Label_Point();
+		flag=Find_Medroid(c_list);
+		Label_Point(c_list);
 		i++;
 	}
 	printf("break at %d\n",i-1);
@@ -169,30 +170,31 @@ void Create_Memory(){
 	int i;
 	distance_m=(float**)malloc(N_points*sizeof(float*));
 	for(i=0;i<N_points;i++){
-		distance_m[i]=(float*)malloc(N_points*sizeof(float));
+		distance_m[i]=(float*)malloc((N_points-i)*sizeof(float));
 	}
 #endif	
 }
 #if USE_MATRIX
+
 void Find_Distance(){
 	int i, j, k;
 	#pragma omp for
 	for(i=0; i<N_points; i++){
 		for(j=i; j<N_points; j++){
-			distance_m[i][j]=0;
+			distance_m[i][j-i]=0;
 			for(k=0; k<Dim; k++){
-				distance_m[i][j]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
+				distance_m[i][j-i]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
 			}
-			distance_m[i][j]=sqrtf(distance_m[i][j]);
-			distance_m[j][i]=distance_m[i][j];
+			distance_m[i][j-i]=sqrtf(distance_m[i][j-i]);
 		}
 	}
 }
 #endif
-void Label_Point(){
-	int i, j, k;
+void Label_Point(std::vector<std::vector<int> >& c_list){
+	int i, j, k, ip, jp;
 	double sum,temp;
 	for(i=0; i<N_c;i++){
+		c_list[i].clear();
 		n_list[i]=0;
 	}
 	for(i=0; i<N_points; i++){
@@ -200,9 +202,16 @@ void Label_Point(){
 		label[i]=-1;
 		for(j=0; j<N_c; j++){
 #if USE_MATRIX
-			if(distance_m[i][c_id[j]]<sum){
+			if(c_id[j]>i){
+				ip=i;
+				jp=c_id[j];
+			}else{
+				ip=c_id[j];
+				jp=i;
+			}
+			if(distance_m[ip][jp-ip]<sum){
 				label[i]=j;
-				sum=distance_m[i][c_id[j]];
+				sum=distance_m[ip][jp-ip];
 			}
 
 #else			
@@ -214,32 +223,43 @@ void Label_Point(){
 #endif
 		}
 		n_list[label[i]]++;	
+		c_list[label[i]].push_back(i);
 	}
 
 }
 
-int Find_Medroid(){
+int Find_Medroid(std::vector<std::vector<int> >& c_list){
 	int flag=0;
-	int i,j,k;
-	double temp=0;
-	for(i=0; i<N_points; i++){
-		sum_dis[i]=0;
-		for(j=0; j<N_points; j++){
-			if(label[i]==label[j]){
+	int i,j,k, ip, jp, id_new, im, jm;
+	double temp=0, sum, min;
+	for(i=0; i<N_c; i++){
+		min=SUM_MAX;
+		for(j=0; j<c_list[i].size(); j++){
+			ip=c_list[i][j];
+			sum=0;
+			for(k=0;k<c_list[i].size();k++){
+				jp=c_list[i][k];
+			
 #if USE_MATRIX
-				sum_dis[i]+=distance_m[i][j]/n_list[label[i]];
+				im=(jp>ip)?ip:jp;
+				jm=(jp>ip)?jp:ip;
+				sum+=distance_m[im][jm-im]/c_list[i].size();
 #else
-				temp=Calculate_Distance(x,i,j,Dim,N_points);		
-				sum_dis[i]+=temp;
+				temp=Calculate_Distance(x,ip,jp,Dim,N_points)/c_list[i].size;		
+				sum+=temp;
 #endif						
 
 			}
+			if(sum<min){
+				id_new=ip;
+				min=sum;
+			}
 		}
-		if(sum_dis[i]<min_c[label[i]]){
-			c_id[label[i]]=i;
-			min_c[label[i]]=sum_dis[i];
+		if(id_new!=c_id[i]){
 			flag++;
+			c_id[i]=id_new;
 		}
+		
 	}
 	return (flag>0)?1:0;
 }
