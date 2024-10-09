@@ -13,7 +13,7 @@
 #endif
 
 #define N_IT 20
-#define SUM_MAX 1e5
+#define SUM_MAX 1e14
 #define USE_MATRIX 1
 
 void Create_Memory();
@@ -88,7 +88,7 @@ int main(int argc, char** argv){
 		return 3;
 	}
 	std::vector<std::vector<int> > c_list(N_c);
-	printf("N_c =%d, N_thread = %d\n", N_c, N_thread);
+//	printf("N_c =%d, N_thread = %d\n", N_c, N_thread);
 	//intialization
 	st=monotonic_seconds();
 #if USE_MATRIX
@@ -106,7 +106,7 @@ int main(int argc, char** argv){
 		Label_Point(c_list);
 		i++;
 	}
-	printf("break at %d\n",i-1);
+//	printf("break at %d\n",i-1);
 	et=monotonic_seconds();
 	print_time(et-st);
 	Save_Result();
@@ -135,9 +135,7 @@ char Load_File(char *str){
 		printf("can't find the file\n");
 		return 1;
 	}
-	if(fscanf(in,"%d %d\n",&N_points, &Dim )==2){
-		printf("N_point = %d, Dim = %d\n",N_points, Dim);
-	}else{
+	if(fscanf(in,"%d %d\n",&N_points, &Dim )!=2){
 		printf("can't get Number of nodes and relative dimension\n");
 		return 2;
 	}
@@ -267,12 +265,12 @@ int Find_Medroid(std::vector<std::vector<int> >& c_list){
 void Save_Result(){
 	FILE *out;
 	int i,j;
-	out = fopen("label.txt","w");
+	out = fopen("clusters.txt","w");
 	for(i=0; i<N_points; i++){
 		fprintf(out, "%d\n",label[i]);
 	}
 	fclose(out);
-	out = fopen("medroid.txt","w");
+	out = fopen("centroids.txt","w");
 	for(i=0; i<N_c; i++){
 		for(j=0; j<Dim-1; j++){
 			fprintf(out, "%lf ",x[c_id[i]+j*N_points]);

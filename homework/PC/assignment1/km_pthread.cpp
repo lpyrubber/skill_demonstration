@@ -12,9 +12,9 @@
   #include <mach/mach_time.h>
 #endif
 
-#define USE_MATRIX 0
+#define USE_MATRIX 1
 #define N_IT 20
-#define SUM_MAX 1e7
+#define SUM_MAX 1e14
 
 void Create_Memory();
 char Load_File(char *str);
