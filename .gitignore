@@ -7,5 +7,6 @@
 *.png
 *.jpg
 *.ipynb
+*.swp
 .DS_store
 .Rhistory
