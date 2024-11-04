@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define N_points 101
+#define N_points 10
 
 int main(){
 	int i, ix,iy;
@@ -25,9 +25,10 @@ int main(){
 	}
 */	
 	int id;
+	printf("N=%d\n",N_points);
 	for(i=0;i<N_points;i++){
 		id=(i%2)?((i%2)*(N_points-1)-i/2):((i%2)*(N_points-1)+i/2);
-		printf("%d ",id);
+		printf("i=%d, ib=%d\n",i, id);
 	}
 	printf("\n");
 	return 0;

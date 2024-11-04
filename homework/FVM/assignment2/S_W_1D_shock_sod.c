@@ -9,7 +9,6 @@
 #define dt 0.0001
 #define dx ((L)/(N-1)) 
 #define N_step (int)(T/dt)
-//#define N_step 1
 
 float *U, *Fp, *Fm, *rho, *P, *v;
 
@@ -64,66 +63,63 @@ void Initial(){
 }
 
 void Compute_Flux(){
-    float S[9],S_inv[9],C[9],C_inv[9],A[9], T_inv[9], LS[9], LT[9],a;
+    float S[9],S_inv[9],C[9],C_inv[9],A[9], T_inv[9], LC[9], LT[9],a;
     int i,j,k;
     for(i=0; i<N; i++){
         a=sqrtf(Gamma*P[i]/rho[i]);
-        C[0]=1;
-        C[1]=0;
-        C[2]=0;
+        S[0]=1;
+        S[1]=0;
+        S[2]=0;
 
-        C[3]=-v[i]/rho[i];
-        C[4]=1/rho[i];
-        C[5]=0;
+        S[3]=-v[i]/rho[i];
+        S[4]=1/rho[i];
+        S[5]=0;
 
-        C[6]=0.5*(Gamma-1)*v[i]*v[i];
-        C[7]=-(Gamma-1)*v[i];
-        C[8]=Gamma-1;
-
-        C_inv[0]=1;
-        C_inv[1]=0;
-        C_inv[2]=0;
-
-        C_inv[3]=v[i];
-        C_inv[4]=rho[i];
-        C_inv[5]=0;
-
-        C_inv[6]=0.5*v[i]*v[i];
-        C_inv[7]=rho[i]*v[i];
-        C_inv[8]=1/(Gamma-1);
-
-
-  
+        S[6]=0.5*(Gamma-1)*v[i]*v[i];
+        S[7]=-(Gamma-1)*v[i];
+        S[8]=Gamma-1;
 
         S_inv[0]=1;
-        S_inv[1]=0.5/(a*a);
-        S_inv[2]=0.5/(a*a);
+        S_inv[1]=0;
+        S_inv[2]=0;
 
-        S_inv[3]=0;
-        S_inv[4]=0.5/(rho[i]*a);
-        S_inv[5]=-0.5/(rho[i]*a);
+        S_inv[3]=v[i];
+        S_inv[4]=rho[i];
+        S_inv[5]=0;
 
-        S_inv[6]=0;
-        S_inv[7]=0.5;
-        S_inv[8]=0.5;
+        S_inv[6]=0.5*v[i]*v[i];
+        S_inv[7]=rho[i]*v[i];
+        S_inv[8]=1/(Gamma-1);
 
-        Matrix_Multiply(C_inv, S_inv, T_inv, 3);
+        C_inv[0]=1;
+        C_inv[1]=0.5/(a*a);
+        C_inv[2]=0.5/(a*a);
 
-        //set up S for Fp
+        C_inv[3]=0;
+        C_inv[4]=0.5/(rho[i]*a);
+        C_inv[5]=-0.5/(rho[i]*a);
+
+        C_inv[6]=0;
+        C_inv[7]=0.5;
+        C_inv[8]=0.5;
+
+        Matrix_Multiply(S_inv, C_inv, T_inv, 3);
+
+        //set up LC for Fp
         
-        LS[0]=0.5*(v[i]+fabs(v[i]));
-        LS[1]=0;
-        LS[2]=-0.5*(v[i]+fabs(v[i]))/(a*a);
+        LC[0]=0.5*(v[i]+fabs(v[i]));
+        LC[1]=0;
+        LC[2]=-0.5*(v[i]+fabs(v[i]))/(a*a);
 
-        LS[3]=0;
-        LS[4]=0.5*(v[i]+a+fabs(v[i]+a))*rho[i]*a;
-        LS[5]=0.5*(v[i]+a+fabs(v[i]+a));
+        LC[3]=0;
+        LC[4]=0.5*(v[i]+a+fabs(v[i]+a))*rho[i]*a;
+        LC[5]=0.5*(v[i]+a+fabs(v[i]+a));
 
-        LS[6]=0;
-        LS[7]=-0.5*(v[i]-a+fabs(v[i]-a))*rho[i]*a;
-        LS[8]=0.5*(v[i]-a+fabs(v[i]-a));
+        LC[6]=0;
+        LC[7]=-0.5*(v[i]-a+fabs(v[i]-a))*rho[i]*a;
+        LC[8]=0.5*(v[i]-a+fabs(v[i]-a));
 
-        Matrix_Multiply(LS, C, LT, 3);
+        Matrix_Multiply(LC, S, LT, 3);
         Matrix_Multiply(T_inv, LT, A, 3);
 
         for(j=0;j<3;j++){
@@ -133,21 +129,20 @@ void Compute_Flux(){
                 Fp[i+j*N]+=A[k+j*3]*U[i+k*N];
             }
         }
-        //set up S for Fm
+        //set up LC for Fm
+        LC[0]=0.5*(v[i]-fabs(v[i]));
+        LC[1]=0;
+        LC[2]=-0.5*(v[i]-fabs(v[i]))/(a*a);
 
-        LS[0]=0.5*(v[i]-fabs(v[i]));
-        LS[1]=0;
-        LS[2]=-0.5*(v[i]-fabs(v[i]))/(a*a);
+        LC[3]=0;
+        LC[4]=0.5*(v[i]+a-fabs(v[i]+a))*rho[i]*a;
+        LC[5]=0.5*(v[i]+a-fabs(v[i]+a));
 
-        LS[3]=0;
-        LS[4]=0.5*(v[i]+a-fabs(v[i]+a))*rho[i]*a;
-        LS[5]=0.5*(v[i]+a-fabs(v[i]+a));
+        LC[6]=0;
+        LC[7]=-0.5*(v[i]-a-fabs(v[i]-a))*rho[i]*a;
+        LC[8]=0.5*(v[i]-a-fabs(v[i]-a));
 
-        LS[6]=0;
-        LS[7]=-0.5*(v[i]-a-fabs(v[i]-a))*rho[i]*a;
-        LS[8]=0.5*(v[i]-a-fabs(v[i]-a));
-
-        Matrix_Multiply(LS, C, LT, 3);
+        Matrix_Multiply(LC, S, LT, 3);
         Matrix_Multiply(T_inv, LT, A, 3);
 
         for(j=0;j<3;j++){
