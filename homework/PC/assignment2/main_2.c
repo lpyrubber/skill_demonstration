@@ -5,7 +5,7 @@
 
 int Partition_Single(int *array, int low, int high, int pi, int *tag);
 void Quicksort_Single(int *array, int low, int high);
-void Quicksort_parallel(int npl, int n_array,int *array);
+void Quicksort_parallel(int np, int n_array,int *array);
 void Allocate_Memory(int N);
 void Initialize(int N);
 void Free_Memory();
@@ -79,7 +79,7 @@ void Initialize(int N){
     int i=0;
     srand(time(NULL)+rank);
     for(i=0; i<N; i++){
-        array[i]=rand()%100;
+        array[i]=rand()%10;
     }
 }
 
@@ -111,15 +111,21 @@ void Redistribution(){
 int Partition_Single(int *array, int low, int high, int pivot, int *tag){
     int j = low;
     int i = (low-1);
-    while(j<=high && ~(*tag)){
+    char flag=1;
+    while(j<=high && flag){
         if(array[j]==pivot){
-            *tag++1;
             Swap(array, j, high);
+            flag=0;
         }
         j++;
     }
+    *tag=0;
     for(j=low; j<= high; j++){
-        if(array[j]<=pivot){    
+        if(array[j]==pivot){
+            *tag=*tag+1;
+            
+        }else if(array[j]<pivot){
+             
             i++;
             Swap(array, i, j);
         }
@@ -128,36 +134,32 @@ int Partition_Single(int *array, int low, int high, int pivot, int *tag){
     return i;
 }
 
-void Quicksort_parallel(int npl, int n_array,int *array){
+void Quicksort_parallel(int np, int n_array,int *array){
     int pi;
     int nf, nb;
     int i,j;
     int tag=0;
-    if(npl==1){
+    if(np==1){
         Quicksort_Single(array, 0, n_array);
     }else{
         i=Pivot_Parallel();
-        pi=Partition_Single(array, 0, n_array-1, array[0], &tag);
+        pi=Partition_Single(array, 0, n_array-1, i, &tag);
         printf("%d, pi = %d, value=%d\n", rank, pi, array[pi]);
-        if(tag){
-            nb=pi;
-            nf=n_array-pi-1;
-        }else{
-            nb=pi+1;
-            nf=n_array-pi-1;
-        }
+        nb=pi+1-tag;
+        nf=n_array-1-pi;
         
-        printf("%d: nb=%d, nf=%d\n",rank, nb, nf);
+        printf("%d: nb=%d, np=%d, nf=%d\n",rank, nb, tag, nf);
         //reduction sum of nb, nf for all process
         MPI_Allreduce(&nb, n_total, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(&nf, n_total+1, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-        printf("%d: nb_total=%d, nf_total=%d\n",rank, n_total[0], n_total[1]);
+        MPI_Allreduce(&tag, n_total+1, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&nf, n_total+2, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        printf("%d: nb_total=%d, np_total=%d, nf_total=%d\n",rank, n_total[0], n_total[1], n_total[2]);
         //determine how many process you nee
         //calculate each process's element
         //redistribution and create new communitors
         //update size and rank
-        //npl=size of new commucator
-        //Quicksort_Parallel(npl, new size of aray, array);
+        //np=size of new commucator
+        //Quicksort_Parallel(np, new size of aray, array);
     }
 
 
@@ -165,7 +167,7 @@ void Quicksort_parallel(int npl, int n_array,int *array){
 }
 
 void Quicksort_Single(int *array, int low, int high){
-    int pi;
+    int pi,tag;
     if (low < high){
         pi = Partition_Single(array, low, high, array[low], &tag);
         Quicksort_Single(array, low, pi-1);
@@ -175,5 +177,5 @@ void Quicksort_Single(int *array, int low, int high){
 
 int Pivot_Parallel(){
     //find the median of local
-    return 50;
+    return 5;
 }
