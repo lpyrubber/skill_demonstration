@@ -111,7 +111,7 @@ int main(int argc, char** argv){
 		Find_Distance();
 #endif
 
-		while(flag && (itt<20)){
+		while(flag && (itt<N_IT)){
 			double st1;
 			if(tid==0){
 				st1=monotonic_seconds();
@@ -171,11 +171,12 @@ int main(int argc, char** argv){
 				st2=monotonic_seconds();
 			}
 			flag=0;
-			#pragma omp barrier			
+			#pragma omp barrier	
+			#pragma omp for schedule(dynamics)		
 			for(i=0; i<N_c; i++){
 				min_c[i]=SUM_MAX;
 				min=SUM_MAX;
-				#pragma omp for
+				
 				for(j=0; j<c_list[i].size(); j++){
 					ip=c_list[i][j];
 					sum=0;
@@ -195,13 +196,10 @@ int main(int argc, char** argv){
 						local=ip;
 					}
 				}
-				#pragma omp critical
-				{
-					if(min<min_c[i]){
-						min_c[i]=min;
-						c_id[i]=local;
-					}	
-				}		
+				if(min<min_c[i]){
+					min_c[i]=min;
+					c_id[i]=local;
+				}			
 			}
 			#pragma omp barrier
 			for(i=0;i<N_c;i++){

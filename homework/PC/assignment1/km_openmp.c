@@ -210,7 +210,7 @@ void Create_Memory(){
 #if USE_MATRIX
 void Find_Distance(){
 	int i, j, k;
-	#pragma omp for
+	#pragma omp for //schedule(dynamic)
 	for(i=0; i<N_points; i++){
 		for(j=i; j<N_points; j++){
 			distance_m[i][j]=0;
@@ -228,7 +228,7 @@ void Label_Point(int tid){
 	float sum;
 	float temp;
 	#pragma omp barrier
-	#pragma omp for
+	#pragma omp for // schedule(dynamic)
 	for(i=0; i<N_points; i++){
 		sum=SUM_MAX;
 		label[i]=-1;
@@ -262,12 +262,12 @@ int Find_Medroid(int tid){
 		local_id[i+tid*N_c]=c_id[i];
 //		printf("at %d,cluster %i,min=%f,id=%d\n",tid,i,local_min[i+tid*N_c],local_id[i+tid*N_c]);
 	}
-	#pragma omp for
+	#pragma omp for // schedule(dynamic)
 	for(i=0; i<N_points; i++){
 		sum_dis[i]=0;
 	}
 	#pragma omp barrier
-	#pragma omp for
+	#pragma omp for// schedule(dynamic)
 	for(i=0; i<N_points; i++){
 		for(j=0; j<N_points; j++){
 			if(label[i]==label[j]){

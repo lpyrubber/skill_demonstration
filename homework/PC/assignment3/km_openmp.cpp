@@ -111,7 +111,7 @@ int main(int argc, char** argv){
 		Find_Distance();
 #endif
 
-		while(flag && (itt<20)){
+		while(flag && (itt<N_IT)){
 			double st1;
 			if(tid==0){
 				st1=monotonic_seconds();

@@ -16,16 +16,21 @@
 #define SUM_MAX 1e14
 #define USE_MATRIX 1
 
+int Partition(int *array, int low, int high);
+void Quicksort(int *array, int low, int high);
+
 void Create_Memory();
 char Load_File(char *str);
 void Free_Memory();
-int Find_Medroid(std::vector<std::vector<int> >& c_list);
-void Label_Point(std::vector<std::vector<int> >& c_list );
+int Find_Medroid();
+void Label_Point();
 void Save_Result();
 static void print_time(double const seconds);
 #if USE_MATRIX
 void Find_Distance();
 #endif
+
+
 
 inline double Calculate_Distance(double *x, int i, int j, int Dim, int N_points){
 	double temp=0;
@@ -64,8 +69,18 @@ static inline double monotonic_seconds()
 #endif
 }
 
+void Swap(int* array, int i, int j, int N_points){
+    int temp=array[i];
+	int offset=(i<N_points)?N_points:-N_points;
+    array[i]=array[j];
+    array[j]=temp;
+	temp=array[i+offset];
+	array[i+offset]=array[j+offset];
+    array[j+offset]=temp;	
+}
+
 int N_c, N_thread, N_points, Dim;
-int *label, *c_id, *n_list;
+int *label, *c_id, *n_list, *prefix;
 double *x, *sum_dis, *min_c;
 
 #if USE_MATRIX
@@ -99,20 +114,21 @@ int main(int argc, char** argv){
 		c_id[i]=i;
 		min_c[i]=SUM_MAX;
 	}
-	Label_Point(c_list);
+	Label_Point();
 	i=0;
 	flag=1;
 	while(flag&&i<N_IT){
 		double st1=monotonic_seconds();
-		flag=Find_Medroid(c_list);
+		flag=Find_Medroid();
 		st1=monotonic_seconds()-st1;
 		printf("%d:find_medroid:%lf\n",i,st1);
 		double st2=monotonic_seconds();
-		Label_Point(c_list);
+		Label_Point();
 		st2=monotonic_seconds()-st2;
 		printf("%d:label_point:%lf\n",i,st2);
 		i++;
 	}
+	Quicksort(label, N_points, 2*N_points-1);
 //	printf("break at %d\n",i-1);
 	et=monotonic_seconds();
 	print_time(et-st);
@@ -170,6 +186,7 @@ void Create_Memory(){
 	min_c=(double*)malloc(N_c*sizeof(double));
 	label=(int*)malloc(2*N_points*sizeof(int));
 	c_id=(int*)malloc(N_c*sizeof(int));
+	prefix=(int*)malloc((N_c+1)*sizeof(int));
 	n_list=(int*)malloc(N_c*sizeof(int));
 #if USE_MATRIX
 	int i;
@@ -195,16 +212,17 @@ void Find_Distance(){
 	}
 }
 #endif
-void Label_Point(std::vector<std::vector<int> >& c_list){
+void Label_Point(){
+//	printf("start label\n");
 	int i, j, k, ip, jp;
 	double sum,temp;
 	for(i=0; i<N_c;i++){
-		c_list[i].clear();
 		n_list[i]=0;
 	}
 	for(i=0; i<N_points; i++){
 		sum=SUM_MAX;
 		label[i]=-1;
+		label[i+N_points]=i;
 		for(j=0; j<N_c; j++){
 #if USE_MATRIX
 			if(c_id[j]>i){
@@ -228,29 +246,33 @@ void Label_Point(std::vector<std::vector<int> >& c_list){
 #endif
 		}
 		n_list[label[i]]++;	
-		c_list[label[i]].push_back(i);
 	}
-
+	Quicksort(label, 0, N_points-1);
+//	printf("Finish quicksort\n");
+	prefix[0]=0;
+	for(i=0; i<N_c;i++){
+		prefix[i+1]=prefix[i]+n_list[i];
+	}
 }
 
-int Find_Medroid(std::vector<std::vector<int> >& c_list){
+int Find_Medroid(){
 	int flag=0;
 	int i,j,k, ip, jp, id_new, im, jm;
 	double temp=0, sum, min;
 	for(i=0; i<N_c; i++){
 		min=SUM_MAX;
-		for(j=0; j<c_list[i].size(); j++){
-			ip=c_list[i][j];
+		for(j=prefix[i]; j<prefix[i+1]; j++){
+			ip=label[j+N_points];
 			sum=0;
-			for(k=0;k<c_list[i].size();k++){
-				jp=c_list[i][k];
+			for(k=prefix[i];k<prefix[i+1];k++){
+				jp=label[k+N_points];
 			
 #if USE_MATRIX
 				im=(jp>ip)?ip:jp;
 				jm=(jp>ip)?jp:ip;
-				sum+=distance_m[im][jm-im]/c_list[i].size();
+				sum+=distance_m[im][jm-im]/n_list[i];
 #else
-				temp=Calculate_Distance(x,ip,jp,Dim,N_points)/c_list[i].size();		
+				temp=Calculate_Distance(x,ip,jp,Dim,N_points)/n_list[i];		
 				sum+=temp;
 #endif						
 
@@ -264,7 +286,6 @@ int Find_Medroid(std::vector<std::vector<int> >& c_list){
 			flag++;
 			c_id[i]=id_new;
 		}
-		
 	}
 	return (flag>0)?1:0;
 }
@@ -287,6 +308,29 @@ void Save_Result(){
 	fclose(out);
 }
 
+void Quicksort(int *array, int low, int high){
+    int pi,tag;
+    if (low < high){
+        pi = Partition(array, low, high);
+        Quicksort(array, low, pi-1);
+        Quicksort(array, pi+1, high);
+    }
+}
+
+int Partition(int *array, int low, int high){
+
+	int pivot=array[high];
+    int j = low;
+    int i = (low-1);
+    for(j=low; j<= high-1; j++){
+        if(array[j]<pivot){   
+            i++;
+            Swap(array, i, j, N_points);
+        }
+    }
+    Swap(array, i+1, high, N_points);
+    return i+1;
+}
 
 void Free_Memory(){
 	free(x);
@@ -295,6 +339,7 @@ void Free_Memory(){
 	free(label);
 	free(c_id);
 	free(n_list);
+	free(prefix);
 #if USE_MATRIX
 	int i;
 	for(i=0; i<N_points; i++){
