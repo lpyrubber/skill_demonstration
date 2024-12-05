@@ -8,6 +8,6 @@
 *.jpg
 *.ipynb
 *.swp
-*:Zone.Identifier
+*Zone.Identifier
 .DS_store
 .Rhistory
