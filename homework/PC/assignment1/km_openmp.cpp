@@ -151,6 +151,7 @@ int main(int argc, char** argv){
 				for(i=0;i<N_c;i++){
 					c_list[i].clear();
 					c_old[i]=c_id[i];
+					min_c[i]=SUM_MAX;
 				}
 			}
 			#pragma omp barrier
@@ -162,6 +163,7 @@ int main(int argc, char** argv){
 					local_list[i].clear();
 				}
 			}
+			
 			if(tid==0){
 				st1=monotonic_seconds()-st1;
 				printf("%d:label_point:%lf\n",itt,st1);
@@ -171,35 +173,27 @@ int main(int argc, char** argv){
 				st2=monotonic_seconds();
 			}
 			flag=0;
-			#pragma omp barrier			
-			for(i=0; i<N_c; i++){
-				min_c[i]=SUM_MAX;
-				min=SUM_MAX;
-				#pragma omp for
-				for(j=0; j<c_list[i].size(); j++){
-					ip=c_list[i][j];
-					sum=0;
-					for(k=0; k<c_list[i].size(); k++){
-						jp=c_list[i][k];
+			#pragma omp barrier
+			#pragma omp for schedule(dynamic)			
+			for(i=0; i<N_points; i++){
+				ip=i;
+				sum=0;
+				for(k=0; k<c_list[label[i]].size(); k++){
+					jp=c_list[label[i]][k];
 #if USE_MATRIX
-						im=(jp>ip)?ip:jp;
-						jm=(jp>ip)?jp:ip;
-						sum+=distance_m[im][jm-im]/c_list[i].size();
+					im=(jp>ip)?ip:jp;
+					jm=(jp>ip)?jp:ip;
+					sum+=distance_m[im][jm-im]/c_list[label[i]].size();
 #else
-						temp=Calculate_Distance(x,ip,jp,Dim,N_points)/c_list[i].size();		
-						sum+=temp;
+					temp=Calculate_Distance(x,ip,jp,Dim,N_points)/c_list[label[i]].size();		
+					sum+=temp;
 #endif				
-					}
-					if(sum<min){
-						min=sum;
-						local=ip;
-					}
 				}
 				#pragma omp critical
 				{
-					if(min<min_c[i]){
-						min_c[i]=min;
-						c_id[i]=local;
+					if(sum<min_c[label[i]]){
+						min_c[label[i]]=sum;
+						c_id[label[i]]=i;
 					}	
 				}		
 			}

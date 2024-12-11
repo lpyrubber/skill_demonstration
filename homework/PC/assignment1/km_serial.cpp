@@ -14,7 +14,7 @@
 
 #define N_IT 20
 #define SUM_MAX 1e14
-#define USE_MATRIX 1
+#define USE_MATRIX 0
 
 void Create_Memory();
 char Load_File(char *str);
@@ -31,7 +31,7 @@ inline double Calculate_Distance(double *x, int i, int j, int Dim, int N_points)
 	double temp=0;
 	int k;
 	for(k=0; k<Dim; k++){
-		temp+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
+		temp+=(x[k+i*Dim]-x[k+j*Dim])*(x[k+i*Dim]-x[k+j*Dim]);
 	}
 	return sqrtf(temp);
 }
@@ -65,7 +65,7 @@ static inline double monotonic_seconds()
 }
 
 int N_c, N_thread, N_points, Dim;
-int *label, *c_id, *n_list;
+int *label, *c_id, *n_list, *c_id_old;
 double *x, *sum_dis, *min_c;
 
 #if USE_MATRIX
@@ -97,12 +97,13 @@ int main(int argc, char** argv){
 #endif
 	for(i=0; i<N_c; i++){
 		c_id[i]=i;
+		c_id_old[i]=i;
 		min_c[i]=SUM_MAX;
 	}
 	Label_Point(c_list);
 	i=0;
 	flag=1;
-	while(flag&&i<N_IT){
+	while(flag&&i<1){
 		double st1=monotonic_seconds();
 		flag=Find_Medroid(c_list);
 		st1=monotonic_seconds()-st1;
@@ -149,12 +150,12 @@ char Load_File(char *str){
 	Create_Memory();
 	for(i=0; i<N_points; i++){
 		for(j=0; j<Dim-1; j++){
-			if(fscanf(in, "%lf ", x+(i+j*N_points))<1){
+			if(fscanf(in, "%lf ", x+(j+i*Dim))<1){
 				printf("can't get data\n");
 				return 3;
 			}
 		}
-		if(fscanf(in, "%lf\n", x+(i+(Dim-1)*N_points))<1){
+		if(fscanf(in, "%lf\n", x+(Dim-1+i*Dim))<1){
 			printf("can't get data\n");
 			return 3;
 		}
@@ -163,13 +164,13 @@ char Load_File(char *str){
 	return 0;
 }
 
-
 void Create_Memory(){
 	x=(double*)malloc(N_points*Dim*sizeof(double));
 	sum_dis=(double*)malloc(N_points*sizeof(double));
 	min_c=(double*)malloc(N_c*sizeof(double));
 	label=(int*)malloc(2*N_points*sizeof(int));
 	c_id=(int*)malloc(N_c*sizeof(int));
+	c_id_old=(int*)malloc(N_c*sizeof(int));
 	n_list=(int*)malloc(N_c*sizeof(int));
 #if USE_MATRIX
 	int i;
@@ -188,7 +189,7 @@ void Find_Distance(){
 		for(j=i; j<N_points; j++){
 			distance_m[i][j-i]=0;
 			for(k=0; k<Dim; k++){
-				distance_m[i][j-i]+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
+				distance_m[i][j-i]+=(x[k+i*Dim]-x[k+j*Dim])*(x[k+i*Dim]-x[k+j*Dim]);
 			}
 			distance_m[i][j-i]=sqrtf(distance_m[i][j-i]);
 		}
@@ -237,34 +238,38 @@ int Find_Medroid(std::vector<std::vector<int> >& c_list){
 	int flag=0;
 	int i,j,k, ip, jp, id_new, im, jm;
 	double temp=0, sum, min;
+	FILE *in;
+	in = fopen("serial_sum.csv","w");
 	for(i=0; i<N_c; i++){
-		min=SUM_MAX;
-		for(j=0; j<c_list[i].size(); j++){
-			ip=c_list[i][j];
-			sum=0;
-			for(k=0;k<c_list[i].size();k++){
-				jp=c_list[i][k];
+		min_c[i]=SUM_MAX;
+	}
+	for(i=0; i<N_points; i++){
+		ip=i;
+		sum=0;
+		for(k=0;k<c_list[label[i]].size();k++){
+			jp=c_list[label[i]][k];
 			
 #if USE_MATRIX
-				im=(jp>ip)?ip:jp;
-				jm=(jp>ip)?jp:ip;
-				sum+=distance_m[im][jm-im]/c_list[i].size();
+			im=(jp>ip)?ip:jp;
+			jm=(jp>ip)?jp:ip;
+			sum+=distance_m[im][jm-im]/c_list[label[i]].size();
 #else
-				temp=Calculate_Distance(x,ip,jp,Dim,N_points)/c_list[i].size();		
-				sum+=temp;
+			temp=Calculate_Distance(x,ip,jp,Dim,N_points)/c_list[label[i]].size();		
+			sum+=temp;
 #endif						
-
-			}
-			if(sum<min){
-				id_new=ip;
-				min=sum;
-			}
 		}
-		if(id_new!=c_id[i]){
+		fprintf(in,"%d,%f,%d\n",i,sum,label[i]);
+		if(sum<min_c[label[i]]){
+			c_id[label[i]]=ip;
+			min_c[label[i]]=sum;
+		}
+	}
+	fclose(in);
+	for(i=0; i<N_c; i++){
+		if(c_id_old[i]!=c_id[i]){
 			flag++;
-			c_id[i]=id_new;
+			c_id_old[i]=c_id[i];
 		}
-		
 	}
 	return (flag>0)?1:0;
 }
@@ -280,9 +285,9 @@ void Save_Result(){
 	out = fopen("centroids.txt","w");
 	for(i=0; i<N_c; i++){
 		for(j=0; j<Dim-1; j++){
-			fprintf(out, "%lf ",x[c_id[i]+j*N_points]);
+			fprintf(out, "%lf ",x[j+c_id[i]*Dim]);
 		}
-		fprintf(out,"%lf\n",x[c_id[i]+(Dim-1)*N_points]);
+		fprintf(out,"%lf\n",x[(Dim-1)+c_id[i]*Dim]);
 	}
 	fclose(out);
 }
@@ -294,6 +299,7 @@ void Free_Memory(){
 	free(min_c);
 	free(label);
 	free(c_id);
+	free(c_id_old);
 	free(n_list);
 #if USE_MATRIX
 	int i;

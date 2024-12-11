@@ -75,6 +75,9 @@ __global__ void Prefix_Down_Sweep(int *d_a, int *d_b){
     int i = threadIdx.x + blockDim.x * blockIdx.x;
 	int I = threadIdx.x;
     int N2 = blockDim.x*(blockIdx.x+1);
+    if(i<gridDim.x){
+        d_b[i]=0;
+    }
     if(I==blockDim.x-1){
         d_b[blockIdx.x+1]+=d_a[i];
         d_a[i]=0;

@@ -12,9 +12,9 @@
   #include <mach/mach_time.h>
 #endif
 
-#define N_IT 20
+#define N_IT 2
 #define SUM_MAX 1e14
-#define USE_MATRIX 1
+#define USE_MATRIX 0
 
 int Partition(int *array, int low, int high);
 void Quicksort(int *array, int low, int high);
@@ -80,7 +80,7 @@ void Swap(int* array, int i, int j, int N_points){
 }
 
 int N_c, N_thread, N_points, Dim;
-int *label, *c_id, *n_list, *prefix;
+int *label, *c_id, *n_list, *prefix, *c_id_old;
 double *x, *sum_dis, *min_c;
 
 #if USE_MATRIX
@@ -112,20 +112,20 @@ int main(int argc, char** argv){
 #endif
 	for(i=0; i<N_c; i++){
 		c_id[i]=i;
+		c_id_old[i]=i;
 		min_c[i]=SUM_MAX;
 	}
-	Label_Point();
 	i=0;
 	flag=1;
 	while(flag&&i<N_IT){
 		double st1=monotonic_seconds();
-		flag=Find_Medroid();
-		st1=monotonic_seconds()-st1;
-		printf("%d:find_medroid:%lf\n",i,st1);
-		double st2=monotonic_seconds();
 		Label_Point();
+		st1=monotonic_seconds()-st1;
+		printf("%d:label_point:%lf\n",i,st1);
+		double st2=monotonic_seconds();
+		flag=Find_Medroid();
 		st2=monotonic_seconds()-st2;
-		printf("%d:label_point:%lf\n",i,st2);
+		printf("%d:find_medroid:%lf\n",i,st2);
 		i++;
 	}
 	Quicksort(label, N_points, 2*N_points-1);
@@ -186,6 +186,7 @@ void Create_Memory(){
 	min_c=(double*)malloc(N_c*sizeof(double));
 	label=(int*)malloc(2*N_points*sizeof(int));
 	c_id=(int*)malloc(N_c*sizeof(int));
+	c_id_old=(int*)malloc(N_c*sizeof(int));
 	prefix=(int*)malloc((N_c+1)*sizeof(int));
 	n_list=(int*)malloc(N_c*sizeof(int));
 #if USE_MATRIX
@@ -200,7 +201,6 @@ void Create_Memory(){
 
 void Find_Distance(){
 	int i, j, k;
-	#pragma omp for
 	for(i=0; i<N_points; i++){
 		for(j=i; j<N_points; j++){
 			distance_m[i][j-i]=0;
@@ -218,6 +218,7 @@ void Label_Point(){
 	double sum,temp;
 	for(i=0; i<N_c;i++){
 		n_list[i]=0;
+		min_c[i]=SUM_MAX;
 	}
 	for(i=0; i<N_points; i++){
 		sum=SUM_MAX;
@@ -249,6 +250,7 @@ void Label_Point(){
 	}
 	Quicksort(label, 0, N_points-1);
 //	printf("Finish quicksort\n");
+
 	prefix[0]=0;
 	for(i=0; i<N_c;i++){
 		prefix[i+1]=prefix[i]+n_list[i];
@@ -259,47 +261,53 @@ int Find_Medroid(){
 	int flag=0;
 	int i,j,k, ip, jp, id_new, im, jm;
 	double temp=0, sum, min;
-	for(i=0; i<N_c; i++){
+	FILE *in;
+	in = fopen("serial_sum.csv","w");
+	for(i=0; i<N_points; i++){
 		min=SUM_MAX;
-		for(j=prefix[i]; j<prefix[i+1]; j++){
-			ip=label[j+N_points];
-			sum=0;
-			for(k=prefix[i];k<prefix[i+1];k++){
-				jp=label[k+N_points];
+		ip=label[i+N_points];
+		sum=0;
+		for(k=prefix[label[i]];k<prefix[label[i]+1];k++){
+			jp=label[k+N_points];
 			
 #if USE_MATRIX
-				im=(jp>ip)?ip:jp;
-				jm=(jp>ip)?jp:ip;
-				sum+=distance_m[im][jm-im]/n_list[i];
+			im=(jp>ip)?ip:jp;
+			jm=(jp>ip)?jp:ip;
+			sum+=distance_m[im][jm-im]/n_list[label[i]];
 #else
-				temp=Calculate_Distance(x,ip,jp,Dim,N_points)/n_list[i];		
-				sum+=temp;
+			temp=Calculate_Distance(x,ip,jp,Dim,N_points)/n_list[label[i]];		
+			sum+=temp;
 #endif						
 
-			}
-			if(sum<min){
-				id_new=ip;
-				min=sum;
-			}
 		}
-		if(id_new!=c_id[i]){
-			flag++;
-			c_id[i]=id_new;
+		fprintf(in, "%d,%d,%f,%d\n",i,ip,sum,label[i]);
+		if(sum<min_c[label[i]]){
+			c_id[label[i]]=ip;
+			min_c[label[i]]=sum;
 		}
 	}
+	fclose(in);
+	for(j=0; j<N_c; j++){	
+		if(c_id_old[j]!=c_id[j]){
+			flag++;
+			c_id_old[j]=c_id[j];
+		}
+	}
+	
 	return (flag>0)?1:0;
 }
 
 void Save_Result(){
 	FILE *out;
 	int i,j;
-	out = fopen("clusters.txt","w");
+	out = fopen("clusters_std.txt","w");
 	for(i=0; i<N_points; i++){
 		fprintf(out, "%d\n",label[i]);
 	}
 	fclose(out);
-	out = fopen("centroids.txt","w");
+	out = fopen("centroids_std.txt","w");
 	for(i=0; i<N_c; i++){
+		fprintf(out, "%d ",c_id[i]);
 		for(j=0; j<Dim-1; j++){
 			fprintf(out, "%lf ",x[j+c_id[i]*Dim]);
 		}
@@ -338,6 +346,7 @@ void Free_Memory(){
 	free(min_c);
 	free(label);
 	free(c_id);
+	free(c_id_old);
 	free(n_list);
 	free(prefix);
 #if USE_MATRIX

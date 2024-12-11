@@ -15,5 +15,8 @@ SERIAL:
 
 OPENMP:
 	g++ km_openmp.cpp $(MPCCFLAGS) -O3 -o km_openmp.exe
+
+OPENMP2:
+	g++ km_openmp.cc $(MPCCFLAGS) -O3 -o km_openmp.exe
 PTHREADS:
 	g++ km_pthread.cpp -O3 -o km_pthread.exe

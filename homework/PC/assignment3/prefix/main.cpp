@@ -11,7 +11,7 @@ int BPG;
 
 int main(){
     int i;
-    N=452;
+    N=8;
     Calculate_N2();
     Allocate_Memory();
     printf("d_a=%p, h_a=%p\n",d_a, h_a);

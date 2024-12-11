@@ -114,18 +114,18 @@ int main(int argc, char** argv){
 		c_id[i]=i;
 		min_c[i]=SUM_MAX;
 	}
-	Label_Point();
+
 	i=0;
 	flag=1;
-	while(flag&&i<N_IT){
+	while(flag&&i<1){
 		double st1=monotonic_seconds();
-		flag=Find_Medroid();
-		st1=monotonic_seconds()-st1;
-		printf("%d:find_medroid:%lf\n",i,st1);
-		double st2=monotonic_seconds();
 		Label_Point();
+		st1=monotonic_seconds()-st1;
+		printf("%d:label_point:%lf\n",i,st1);
+		double st2=monotonic_seconds();
+		flag=Find_Medroid();
 		st2=monotonic_seconds()-st2;
-		printf("%d:label_point:%lf\n",i,st2);
+		printf("%d:find_medroid:%lf\n",i,st2);
 		i++;
 	}
 	Quicksort(label, N_points, 2*N_points-1);
@@ -216,6 +216,7 @@ void Label_Point(){
 //	printf("start label\n");
 	int i, j, k, ip, jp;
 	double sum,temp;
+	
 	for(i=0; i<N_c;i++){
 		n_list[i]=0;
 	}
@@ -249,6 +250,9 @@ void Label_Point(){
 	}
 	Quicksort(label, 0, N_points-1);
 //	printf("Finish quicksort\n");
+	for(i=0;i<N_points;i++){
+		printf("%d, %d\n",label[i],label[i+N_points]);
+	}
 	prefix[0]=0;
 	for(i=0; i<N_c;i++){
 		prefix[i+1]=prefix[i]+n_list[i];
@@ -259,6 +263,8 @@ int Find_Medroid(){
 	int flag=0;
 	int i,j,k, ip, jp, id_new, im, jm;
 	double temp=0, sum, min;
+	FILE *in;
+	in = fopen("serial_sum.csv","w");
 	for(i=0; i<N_c; i++){
 		min=SUM_MAX;
 		for(j=prefix[i]; j<prefix[i+1]; j++){
@@ -277,6 +283,7 @@ int Find_Medroid(){
 #endif						
 
 			}
+			fprintf(in, "%d,%f,%d\n",ip,sum,label[ip]);
 			if(sum<min){
 				id_new=ip;
 				min=sum;
@@ -287,6 +294,7 @@ int Find_Medroid(){
 			c_id[i]=id_new;
 		}
 	}
+	fclose(in);
 	return (flag>0)?1:0;
 }
 
