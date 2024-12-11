@@ -37,8 +37,8 @@ void Find_Distance( int tid,   int num,   int offset);
 * @return The number of seconds.
 */
 
-inline float Calculate_Distance(float *x, int i, int j, int Dim, int N_points){
-	float temp=0;
+inline double Calculate_Distance(double *x, int i, int j, int Dim, int N_points){
+	double temp=0;
 	int k;
 	for(k=0; k<Dim; k++){
 		temp+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
@@ -67,14 +67,14 @@ static inline double monotonic_seconds()
 
 int N_c, N_thread, N_points, Dim, flag, c_new;
 int *label, *c_id, *info, *c_old;
-float *x, *sum_dis, *min_c;
+double *x, *sum_dis, *min_c;
 pthread_t *pthreads;
 pthread_mutex_t mutex1;
 pthread_mutex_t mutex2;
 pthread_barrier_t barrier1;
 pthread_barrier_t barrier2;
 #if USE_MATRIX
-float **distance_m;
+double **distance_m;
 #endif
 std::vector<std::vector<int> > c_list;
 
@@ -182,9 +182,9 @@ char Load_File(char *str){
 }
 
 void Create_Memory(){
-	x=(float*)malloc(N_points*Dim*sizeof(float));
-	sum_dis=(float*)malloc(N_points*sizeof(float));
-	min_c=(float*)malloc(N_c*sizeof(float));
+	x=(double*)malloc(N_points*Dim*sizeof(double));
+	sum_dis=(double*)malloc(N_points*sizeof(double));
+	min_c=(double*)malloc(N_c*sizeof(double));
 	label=(int*)malloc(N_points*sizeof(int));
 	c_id=(int*)malloc(N_c*sizeof(int));
     c_old=(int*)malloc(N_c*sizeof(int));
@@ -193,9 +193,9 @@ void Create_Memory(){
 	
 #if USE_MATRIX
 	int i;
-	distance_m=(float**)malloc(N_points*sizeof(float*));
+	distance_m=(double**)malloc(N_points*sizeof(double*));
 	for(i=0;i<N_points;i++){
-		distance_m[i]=(float*)malloc((N_points-1)*sizeof(float));
+		distance_m[i]=(double*)malloc((N_points-1)*sizeof(double));
 	}
 #endif
 
@@ -221,8 +221,8 @@ void Find_Distance( int tid, int num, int offset){
 void Label_Point( int tid,  int num,  int offset){
 	int i, j, k;
     int im,jm;
-	float min;
-	float temp;
+	double min;
+	double temp;
 	std::vector<std::vector<int>> local_list(N_c);
     if(tid==0){
         for(i=0;i<N_c;i++){

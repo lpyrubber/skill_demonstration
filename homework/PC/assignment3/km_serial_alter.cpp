@@ -84,7 +84,7 @@ int *label, *c_id, *n_list, *prefix, *c_id_old;
 double *x, *sum_dis, *min_c;
 
 #if USE_MATRIX
-float **distance_m;
+double **distance_m;
 #endif
 int main(int argc, char** argv){
 	int i,j,k, flag;
@@ -191,9 +191,9 @@ void Create_Memory(){
 	n_list=(int*)malloc(N_c*sizeof(int));
 #if USE_MATRIX
 	int i;
-	distance_m=(float**)malloc(N_points*sizeof(float*));
+	distance_m=(double**)malloc(N_points*sizeof(double*));
 	for(i=0;i<N_points;i++){
-		distance_m[i]=(float*)malloc((N_points-i)*sizeof(float));
+		distance_m[i]=(double*)malloc((N_points-i)*sizeof(double));
 	}
 #endif	
 }

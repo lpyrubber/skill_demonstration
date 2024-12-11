@@ -23,12 +23,12 @@ void print_elapsed(clock_t start, clock_t stop)
   printf("Elapsed time: %.3fs\n", elapsed);
 }
 
-float random_float()
+double random_double()
 {
-  return (float)rand()/(float)RAND_MAX;
+  return (double)rand()/(double)RAND_MAX;
 }
 
-void array_print(float *arr, int length) 
+void array_print(double *arr, int length) 
 {
   int i;
   static int c=0;
@@ -45,16 +45,16 @@ void array_print(float *arr, int length)
   c++;
 }
 
-void array_fill(float *arr, int length)
+void array_fill(double *arr, int length)
 {
   srand(time(NULL));
   int i;
   for (i = 0; i < length; ++i) {
-    arr[i] = random_float();
+    arr[i] = random_double();
   }
 }
 
-__global__ void bitonic_sort_step(float *dev_values, int j, int k)
+__global__ void bitonic_sort_step(double *dev_values, int j, int k)
 {
   unsigned int i, ixj; /* Sorting partners: i and ixj */
   i = threadIdx.x + blockDim.x * blockIdx.x;
@@ -66,7 +66,7 @@ __global__ void bitonic_sort_step(float *dev_values, int j, int k)
       /* Sort ascending */
       if (dev_values[i]>dev_values[ixj]) {
         /* exchange(i,ixj); */
-        float temp = dev_values[i];
+        double temp = dev_values[i];
         dev_values[i] = dev_values[ixj];
         dev_values[ixj] = temp;
       }
@@ -75,7 +75,7 @@ __global__ void bitonic_sort_step(float *dev_values, int j, int k)
       /* Sort descending */
       if (dev_values[i]<dev_values[ixj]) {
         /* exchange(i,ixj); */
-        float temp = dev_values[i];
+        double temp = dev_values[i];
         dev_values[i] = dev_values[ixj];
         dev_values[ixj] = temp;
       }
@@ -86,10 +86,10 @@ __global__ void bitonic_sort_step(float *dev_values, int j, int k)
 /**
  * Inplace bitonic sort using CUDA.
  */
-void bitonic_sort(float *values)
+void bitonic_sort(double *values)
 {
-  float *dev_values;
-  size_t size = NUM_VALS * sizeof(float);
+  double *dev_values;
+  size_t size = NUM_VALS * sizeof(double);
 
   cudaMalloc((void**) &dev_values, size);
   cudaMemcpy(dev_values, values, size, cudaMemcpyHostToDevice);
@@ -110,16 +110,16 @@ void bitonic_sort(float *values)
 }
 
 
-__global__ __forceinline__ void bitonicSort(float* a, float* b);
-__global__ __forceinline__ void bitonicBuild(float* a, float* b);
-void bitonicBuildRunner(float* a, int size);
-void bitonicSortRunner(float* a, int size);
+__global__ __forceinline__ void bitonicSort(double* a, double* b);
+__global__ __forceinline__ void bitonicBuild(double* a, double* b);
+void bitonicBuildRunner(double* a, int size);
+void bitonicSortRunner(double* a, int size);
 
 int main(void)
 {
   clock_t start, stop;
 
-  float *values = (float*) malloc( NUM_VALS * sizeof(float));
+  double *values = (double*) malloc( NUM_VALS * sizeof(double));
   array_fill(values, NUM_VALS);
   array_print(values, NUM_VALS);
   start = clock();
@@ -131,10 +131,10 @@ int main(void)
 }
 
 
-void bitonicSortRunner(float* a, int size) {
+void bitonicSortRunner(double* a, int size) {
 	// Copy over memory
-  float* array;
-	int mem = sizeof(float) * size;
+  double* array;
+	int mem = sizeof(double) * size;
 	
 	int blocks = 1;
 	while(blocks != size / 2) {
@@ -147,7 +147,7 @@ void bitonicSortRunner(float* a, int size) {
 	}
 }
 
-void bitonicBuildRunner(float* a, int size) {
+void bitonicBuildRunner(double* a, int size) {
 	int blocks = size / 2;
   int j;
 	while(blocks != 1) {
@@ -167,7 +167,7 @@ void bitonicBuildRunner(float* a, int size) {
  * Applies the bitonic sorting algorithm to each thread. It swaps two
  * elements in the two lists if they are out of place.
  */
-__global__ __forceinline__ void bitonicSort(float* a, int blockSize) {
+__global__ __forceinline__ void bitonicSort(double* a, int blockSize) {
 	// First we need to figure out what index each thread will access
     int index = threadIdx.x + blockIdx.x * blockSize;
 	atomicMin(&a[i + index], 
@@ -181,9 +181,9 @@ __global__ __forceinline__ void bitonicSort(float* a, int blockSize) {
  * @param blockSize The size of each sub-array partition.
  * @param t Determines when to switch between ascending and descending.
  */
-__global__ __forceinline__ void bitonicBuild(float* a, int blockSize, int t) {
+__global__ __forceinline__ void bitonicBuild(double* a, int blockSize, int t) {
 	int index = threadIdx.x + blockIdx.x * blockSize, x = 0, asc = 1;
-	float* b = a + index + (blockSize / 2);
+	double* b = a + index + (blockSize / 2);
 	while(x > index) {
 		x += t;
 		asc++;

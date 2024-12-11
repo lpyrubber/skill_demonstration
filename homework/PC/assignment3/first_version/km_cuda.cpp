@@ -31,10 +31,10 @@ int NC, NC2, TPB, BPG, BPG2, BPGC, NP, NP2, Dim, NT, NB;
 
 
 int *h_label, *h_id, *h_id_old, *h_flag;
-float *h_x;
+double *h_x;
 
 int *d_label, *d_id, *d_id_old, *d_nlist, *d_prefix, *d_flag;
-float *d_x, *d_min, *d_sum;
+double *d_x, *d_min, *d_sum;
 
 int main(int argc, char** argv){
 	double st,et;

@@ -25,7 +25,7 @@ void Save_Result();
 extern int NC, NC2, TPB, BPG, BPG2, BPGC, NP, NP2, Dim, NT, NB;
 
 extern int *h_label, *h_id, *h_id_old, *h_flag;
-extern float *h_x;
+extern double *h_x;
 
 extern int *d_label, *d_id, *d_id_old, *d_nlist, *d_prefix, *d_flag;
-extern float *d_x, *d_min, *d_sum;
+extern double *d_x, *d_min, *d_sum;

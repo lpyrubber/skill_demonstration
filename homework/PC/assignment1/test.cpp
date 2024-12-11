@@ -10,7 +10,7 @@ int main(){
 	int count=N_points;
 	int k=0;
 	int add=N_points-1;
-	float temp;
+	double temp;
 /*	printf("N=%d\n",N);
 	for(i=0;i<N;i++){
 		ix=0.5*((2*N_points-1)-sqrtf(4*N_points*N_points+4*N_points+1-8*(i)))+1;
