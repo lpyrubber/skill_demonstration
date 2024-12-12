@@ -46,7 +46,7 @@ static inline double monotonic_seconds(){
 
 
 void Allocate_Memory(){   
-    h_flag=(int*)malloc(BPG*sizeof(int));
+    h_flag=(int*)malloc(BPGC*sizeof(int));
     h_label=(int*)malloc(NP*sizeof(int));
     h_id=(int*)malloc(NC*sizeof(int));
     h_id_old=(int*)malloc(NC*sizeof(int));
@@ -68,7 +68,7 @@ void Allocate_Memory(){
     cudaMalloc((void**) &d_nlist, size);
     size=(NC2+1)*sizeof(int);
     cudaMalloc((void**) &d_prefix, size);
-    size=BPG*sizeof(int);
+    size=BPGC*sizeof(int);
     cudaMalloc((void**) &d_flag, size);
     size=NP*Dim*sizeof(double);
     cudaMalloc((void**) &d_x, size);
@@ -133,12 +133,13 @@ char Judge(){
     
     char flag=0;
     int i;
-    size_t size=BPGR*sizeof(int);
+    size_t size=BPGC*sizeof(int);
     //bind with reduction (TPB fix)
     Update_ID<<<BPGR,DTPB>>>(d_id, d_id_old, NC, d_flag);
     cudaMemcpy(h_flag, d_flag, size, cudaMemcpyDeviceToHost);
-    for(i=0; i<BPGR; i++){
+    for(i=0; i<BPGC; i++){
         flag|=h_flag[i];
+        printf("%d: %d\n",i, h_flag[i]);
     }
     return flag;
 }
@@ -498,5 +499,5 @@ __device__ double Calculate_Distance(double *x, int i, int j, int Dim){
 	double delta=x[k+i*Dim]-x[k+j*Dim];
         temp+=delta*delta;
 	}
-	return sqrt(temp);
+	return temp;
 }

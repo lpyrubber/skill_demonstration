@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 import math
 from scipy.spatial import Voronoi, voronoi_plot_2d
 
-data=np.loadtxt("small_cpd.txt",skiprows=1)
-#data=np.loadtxt("data.txt",skiprows=1)
+#data=np.loadtxt("small_cpd.txt",skiprows=1)
+data=np.loadtxt("data.txt",skiprows=1)
 #label=np.loadtxt("label.txt")
 label=np.loadtxt("clusters.txt",dtype='int')
-#medroid=np.loadtxt("medroid.txt");
-medroid=np.loadtxt("centroids.txt")
+medroid=np.loadtxt("medoids.txt")
+#medroid=np.loadtxt("centroids.txt")
 
 
 #vor = Voronoi(medroid)
@@ -65,7 +65,7 @@ f.write("\n\ndistance between average and median\n")
 f.write(" ".join(map(str, error[:,1])))
 
 f.close()
-'''
+
 fig, ax = plt.subplots()
 #plt.scatter(x,y)
 #fig=voronoi_plot_2d(vor)
@@ -73,4 +73,3 @@ fig=plt.scatter(x,y,c=label)
 fig=plt.scatter(medroid[:,0],medroid[:,1])
 #fig=voronoi_plot_2d(vor)
 plt.show()
-'''

@@ -41,7 +41,7 @@ inline double Calculate_Distance(double *x, int i, int j, int Dim, int N_points)
 	for(k=0; k<Dim; k++){
 		temp+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
 	}
-	return sqrtf(temp);
+	return sqrt(temp);
 }	
 
 static inline double monotonic_seconds()
@@ -252,12 +252,12 @@ char Load_File(char *str){
 	Create_Memory();
 	for(i=0; i<N_points; i++){
 		for(j=0; j<Dim-1; j++){
-			if(fscanf(in, "%f ", x+(i+j*N_points))<1){
+			if(fscanf(in, "%lf ", x+(i+j*N_points))<1){
 				printf("can't get data\n");
 				return 3;
 			}
 		}
-		if(fscanf(in, "%f\n", x+(i+(Dim-1)*N_points))<1){
+		if(fscanf(in, "%lf\n", x+(i+(Dim-1)*N_points))<1){
 			printf("can't get data\n");
 			return 3;
 		}
@@ -306,12 +306,12 @@ void Save_Result(){
 		fprintf(out, "%d\n",label[i]);
 	}
 	fclose(out);
-	out = fopen("centroids.txt","w");
+	out = fopen("medoids.txt","w");
 	for(i=0; i<N_c; i++){
 		for(j=0; j<Dim-1;j++){
-			fprintf(out, "%f ", x[c_id[i]+j*N_points]);
+			fprintf(out, "%lf ", x[c_id[i]+j*N_points]);
 		}
-		fprintf(out, "%f\n",x[c_id[i]+(Dim-1)*N_points]);
+		fprintf(out, "%lf\n",x[c_id[i]+(Dim-1)*N_points]);
 	}
 	fclose(out);
 }

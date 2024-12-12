@@ -309,14 +309,14 @@ int main(int argc, char *argv[]) {
     }
 
     iter_count++;
-/*
+
     if (converged && iter_count)
       break; 
 
     converged = 1;
-*/
+
   } //end while - Indent required.
-  printf("it stop at %d\n",iter_count);
+
   double time = monotonic_seconds() - start;
   print_time(time);
 
@@ -340,7 +340,7 @@ int main(int argc, char *argv[]) {
 
   for(i = 0; i < clusters; i++) {
     for(j = 0; j < dims_test; j++) {
-      fprintf(f, "%e ", cluster_medoids[i][j]);
+      fprintf(f, "%0.8f ", cluster_medoids[i][j]);
     }
     fprintf(f, "\n");
   }
