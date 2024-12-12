@@ -23,6 +23,9 @@ all:SERIAL OPENMP PTHREADS
 SERIAL:
 	g++ km_serial.cpp -O3 -o km_serial.exe
 
+VALID:
+	g++ km_openmp.cc $(MPCCFLAGS) -O3 -o validate.exe
+
 OPENMP:
 	g++ km_openmp.cpp $(MPCCFLAGS) -O3 -o km_openmp.exe
 PTHREADS:

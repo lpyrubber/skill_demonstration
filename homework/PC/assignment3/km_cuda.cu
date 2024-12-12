@@ -12,21 +12,16 @@
 
 #define N_IT 1
 #define SUM_MAX 1e14
-#define DTPB 512
+//for reduction, prefix sum and sorting
+#define DTPB 1024
 
-//cpu function
-void Allocate_Memory();
-void Free_Memory();
-void Send_To_Device();
-void GPU_Compute();
-void Send_To_Host();
-void Save_Result();
+
 void Prefix_sum(int *d_a, int *d_b);
-void Bitonic_Sort(int *d_a, char flag);
+void Bitonic_Sort(int *d_a);
 void Find_Medroid();
 void Label_Point();
 char Judge();
-static void print_time(double const seconds);
+static void print_time(float const seconds);
 char Load_File(char *str);
 void Calculate_2N();
 void Initialize();
@@ -35,13 +30,19 @@ void Initialize();
 
 //cuda function (didn't fintout a way to split)
 
-__global__ void Bitonic_Sort_Step(int *d_a, int j, int k, int N, char flag);
+__global__ void Bitonic_Sort_Step(int *d_a, int j, int k, int N);
 __global__ void Prefix_Up_Sweep(int *d_a, int N, int N_total);
 __global__ void Prefix_Down_Sweep(int *d_a, int *d_b);
 __global__ void Offest_Between_Block(int *d_b, int N);
 __global__ void Add_Offset(int *d_a, int *d_b);
+<<<<<<< HEAD
 __global__ void Nearest_Medroid(double *x, int *label, int *clist, int *id, int *id_old, int *nlist, int Nij, int NC, int N, int N2, int Dim);
 __global__ void Nlist_Initial(int *nlist, int *label, int N);
+=======
+__global__ void Array_Initial(float *min, int* nlist, int* id, int N, int NC);
+__global__ void Nearest_Medroid(float *x, int *label, int *clist, int *id, int *id_old, int *nlist, int Nij, int NC, int N, int N2, int Dim, int BPGR);
+__global__ void Nlist_Initial(int *nlist, int *label, int *id, int N, int NC);
+>>>>>>> 6d1d682 (add something)
 __global__ void Nlist_Reduction(int *nlist, int offset, int gap, int NC);
 __global__ void Nlist_To_Prefix(int *nlist, int *prefix, int NC, int NC2, int BBPG, int BPG, int N);
 __global__ void Distance_Between_Cluster(double *x, double *sum, int *label, int *prefix, int Dim, int Nij, int N, int N2);
@@ -52,11 +53,11 @@ __global__ void Update_ID(int *id, int*id_old, int NC, int *d_flag);
 __device__ double Calculate_Distance(double *x, int i, int j, int Dim);
 
 
-static inline double monotonic_seconds(){
+static inline float monotonic_seconds(){
 #ifdef __MACH__
   /* OSX */
   static mach_timebase_info_data_t info;
-  static double seconds_per_unit;
+  static float seconds_per_unit;
   if(seconds_per_unit == 0) {
     mach_timebase_info(&info);
     seconds_per_unit = (info.numer / info.denom) / 1e9;
@@ -80,7 +81,7 @@ int *d_label, *d_clist, *d_id, *d_id_old, *d_nlist, *d_prefix, *d_flag;
 double *d_x, *d_min, *d_sum;
 
 int main(int argc, char** argv){
-	double st,et;
+	float st,et;
 	if(argc<5) {
 		printf("Not enough of arguemt\n");
 		return 1;
@@ -117,7 +118,7 @@ int main(int argc, char** argv){
 *
 * @param seconds Seconds spent on k-means clustering, excluding IO.
 */
-static void print_time(double const seconds)
+static void print_time(float const seconds)
 {
   printf("k-means clustering time: %0.04fs\n", seconds);
 }
@@ -169,8 +170,8 @@ void Calculate_2N(){
     BPG2=(int)((NP2+DTPB-1)/DTPB);
     BPGC=(int)(NC2/DTPB);
     BPGR=(int)((NP+DTPB-1)/DTPB);
-    printf("NP=%d, NP2=%d, NC=%d, NC2=%d, Nij=%d, Ncj=%d, Dim=%d\n",NP, NP2, NC, NC2, Nij, Ncj,Dim);
-    printf("TPB=%d, DTPB=%d, BPG=%d, BPG2=%d, BPGC=%d BPGR=%d\n",TPB, DTPB, BPG, BPG2, BPGC, BPGR);
+    //printf("NP=%d, NP2=%d, NC=%d, NC2=%d, Nij=%d, Ncj=%d, Dim=%d\n",NP, NP2, NC, NC2, Nij, Ncj,Dim);
+    //printf("TPB=%d, DTPB=%d, BPG=%d, BPG2=%d, BPGC=%d BPGR=%d\n",TPB, DTPB, BPG, BPG2, BPGC, BPGR);
 }
 
 void Initialize(){
@@ -217,7 +218,7 @@ void Allocate_Memory(){
     //size=BPGR*NC*sizeof(int);
     size=NP*sizeof(int);
     cudaMalloc((void**) &d_id, size);
-    size=NC*BPG*sizeof(int);
+    size=NC*BPGR*sizeof(int);
     cudaMalloc((void**) &d_id_old, size);
     size=BPGR*NC*sizeof(int);
     cudaMalloc((void**) &d_nlist, size);
@@ -247,7 +248,7 @@ void GPU_Compute(){
     while((it<N_IT)&&flag){
         Label_Point();
         Find_Medroid();
-    //    flag=Judge();
+        flag=Judge();
         it++;
     }
 }
@@ -295,7 +296,7 @@ char Judge(){
 
 
 void Prefix_sum(int *d_a, int *d_b){
-    printf("TPB=%d, BPGC=%d, NC2=%d, N_total=%d\n",TPB, BPGC, NC2, NP);
+    //printf("DTPB=%d, BPGC=%d, NC2=%d, N_total=%d\n",DTPB, BPGC, NC2, NP);
     Prefix_Up_Sweep<<<BPGC,DTPB>>>(d_a, NC2, NP);
     Prefix_Down_Sweep<<<BPGC,DTPB>>>(d_a, d_b);
     if(BPG>1){
@@ -304,11 +305,11 @@ void Prefix_sum(int *d_a, int *d_b){
     }
 }
 
-void Bitonic_Sort(int* d_a, char flag){
+void Bitonic_Sort(int* d_a){
     int j,k;   
     for(k=2; k<=NP2; k<<=1){
         for(j=k>>1; j>0; j>>=1){
-            Bitonic_Sort_Step<<<BPG2,DTPB>>>(d_a, j, k, NP2, flag);
+            Bitonic_Sort_Step<<<BPG2,DTPB>>>(d_a, j, k, NP2);
         }
     }
 }
@@ -317,9 +318,10 @@ void Label_Point(){
     int BBPG=(int)((BPGR+DTPB-1)/DTPB);
     int i, offset;
 
-    Nearest_Medroid<<<BPG,TPB>>>(d_x, d_label, d_clist ,d_id, d_id_old, d_nlist, Nij, NC,NP, NP2,Dim);           
+    Nearest_Medroid<<<BPG,TPB>>>(d_x, d_label, d_clist ,d_id, d_id_old, d_nlist, Nij, NC,NP, NP2,Dim, BPGR);           
     //reduction for number of each cluster (fix TPB)
-    Nlist_Initial<<<BPGR,DTPB>>>(d_nlist, d_label, NP);
+    Array_Initial<<<BPGR,DTPB>>>(d_min, d_nlist, d_id, NP, NC);
+    Nlist_Initial<<<BPGR,DTPB>>>(d_nlist, d_label, d_id, NP, NC);
     for(i=0; i<NC; i++){
         offset=i*BPGR;
         Nlist_Reduction<<<BBPG,DTPB>>>(d_nlist, offset, BPGR, NC);
@@ -329,12 +331,13 @@ void Label_Point(){
     //prefix_sum (fix TPB)
     Prefix_sum(d_prefix, d_nlist);
     //sort (fix TPB)
-    Bitonic_Sort(d_clist, 0);
+    Bitonic_Sort(d_clist);
 }
 
 void Find_Medroid(){
     int BBPG=(int)((BPGR+DTPB-1)/DTPB);
     int i, offset; 
+<<<<<<< HEAD
     int size;
     double *h_temp;
     int *h_clist, *h_tempi;
@@ -362,10 +365,19 @@ void Find_Medroid(){
     }  
 
 
+=======
+    
+    Distance_Between_Cluster<<<BPG, TPB>>>(d_x, d_sum, d_clist, d_prefix, Dim, Nij, NP, NP2);
+    
+
+    //reduction for min (fix TPB)
+    Min_Initial<<<BPGR,DTPB>>>(d_min, d_sum, d_clist, d_prefix, d_id, NC, NP, NP2);
+>>>>>>> 6d1d682 (add something)
     for(i=0; i<NC; i++){
         offset=i*BPGR;
         Min_Reduction<<<BBPG,DTPB>>>(d_min, d_id, offset, BPGR, NC);
     }
+<<<<<<< HEAD
     printf("\nsecond\n");
     size=BPGR*NC*sizeof(int);
     cudaMemcpy(h_tempi, d_id, size, cudaMemcpyDeviceToHost);
@@ -379,6 +391,8 @@ void Find_Medroid(){
     }  
 
 
+=======
+>>>>>>> 6d1d682 (add something)
     Min_Further<<<BPGC,DTPB>>>(d_min, d_id, NC, BBPG, BPGR);
 
 }
@@ -443,14 +457,11 @@ __global__ void Add_Offset(int *d_a, int *d_b){
     d_a[i]+=d_b[blockIdx.x];
 }
 
-__global__ void Bitonic_Sort_Step(int *d_a, int j, int k, int N, char flag){
+__global__ void Bitonic_Sort_Step(int *d_a, int j, int k, int N){
     int i, ixj,m;
     i = threadIdx.x + blockDim.x * blockIdx.x;
     if(i<N){
         m=i&k;
-        if(flag){
-            i+=N;
-        }
         ixj=i^j;
         
         if((ixj>i)){
@@ -459,8 +470,8 @@ __global__ void Bitonic_Sort_Step(int *d_a, int j, int k, int N, char flag){
                     int temp=d_a[i];
                     d_a[i]=d_a[ixj];
                     d_a[ixj]=temp;
-                    int i2=(i+N)&((N<<1)-1);
-                    int ixj2=(ixj+N)&((N<<1)-1);
+                    int i2=(i+N);
+                    int ixj2=(ixj+N);
                     temp=d_a[i2];
                     d_a[i2]=d_a[ixj2];
                     d_a[ixj2]=temp;
@@ -470,8 +481,8 @@ __global__ void Bitonic_Sort_Step(int *d_a, int j, int k, int N, char flag){
                     int temp=d_a[i];
                     d_a[i]=d_a[ixj];
                     d_a[ixj]=temp;
-                    int i2=(i+N)&((N<<1)-1);
-                    int ixj2=(ixj+N)&((N<<1)-1);
+                    int i2=(i+N);
+                    int ixj2=(ixj+N);
                     temp=d_a[i2];
                     d_a[i2]=d_a[ixj2];
                     d_a[ixj2]=temp;
@@ -481,6 +492,7 @@ __global__ void Bitonic_Sort_Step(int *d_a, int j, int k, int N, char flag){
     }
 }
 
+<<<<<<< HEAD
 __global__ void Nearest_Medroid(double *x,int *label, int *clist,int *id, int *id_old, int *nlist, int Nij, int NC, int N, int N2, int Dim){
     int i = threadIdx.x + blockDim.x * blockIdx.x;
     int j = Nij*i;
@@ -494,6 +506,23 @@ __global__ void Nearest_Medroid(double *x,int *label, int *clist,int *id, int *i
     }
     __syncthreads();
     
+=======
+__global__ void Array_Initial(float *min, int* nlist, int* id, int N, int NC){
+    int i = threadIdx.x + blockDim.x * blockIdx.x;
+    if(i<NC*gridDim.x){
+        nlist[i]=0;
+        min[i]=1e15;
+        id[i]=N+2;
+    }
+
+}
+
+__global__ void Nearest_Medroid(float *x,int *label, int *clist,int *id, int *id_old, int *nlist, int Nij, int NC, int N, int N2, int Dim, int BPGR){
+    int i = threadIdx.x + blockDim.x * blockIdx.x;
+    int j = Nij*i;
+    float min2,temp;
+        
+>>>>>>> 6d1d682 (add something)
     for(int j1=0; j1<Nij; j1++){
         if((j1+j)<N){
             min2=SUM_MAX;
@@ -505,7 +534,6 @@ __global__ void Nearest_Medroid(double *x,int *label, int *clist,int *id, int *i
                     min2=temp;
                 }
             }
-//            atomicAdd(&nlist[blockIdx.x+label[j1+j]*gridDim.x],1);
             clist[j1+j]=label[j1+j];
             clist[j1+j+N2]=j1+j;
         }
@@ -517,9 +545,8 @@ __global__ void Nearest_Medroid(double *x,int *label, int *clist,int *id, int *i
     }
 }
 
-__global__ void Nlist_Initial(int *nlist, int *label, int N){
+__global__ void Nlist_Initial(int *nlist, int *label, int *id, int N, int NC){
     int i = threadIdx.x + blockDim.x * blockIdx.x;
-
     if(i<N){
         atomicAdd(&nlist[blockIdx.x+label[i]*gridDim.x],1);
     }
@@ -575,9 +602,6 @@ __global__ void Min_Initial(double *min, double *sum, int *label, int *prefix, i
     __shared__ double temp[1024];
     __shared__ int tag[1024];
 
-    if(i<NC*gridDim.x){
-        id[i]=N+2;
-    }
     __syncthreads();
     up=0;
     down=-1;

@@ -12,9 +12,9 @@
   #include <mach/mach_time.h>
 #endif
 
-#define N_IT 20
+#define N_IT 1
 #define SUM_MAX 1e14
-#define USE_MATRIX 1
+#define USE_MATRIX 0
 
 int Partition(int *array, int low, int high);
 void Quicksort(int *array, int low, int high);
@@ -36,9 +36,9 @@ inline double Calculate_Distance(double *x, int i, int j, int Dim, int N_points)
 	double temp=0;
 	int k;
 	for(k=0; k<Dim; k++){
-		temp+=(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
+		temp+=100*(x[i+k*N_points]-x[j+k*N_points])*(x[i+k*N_points]-x[j+k*N_points]);
 	}
-	return sqrtf(temp);
+	return sqrt(temp);
 }
 
 /**
@@ -117,7 +117,7 @@ int main(int argc, char** argv){
 
 	i=0;
 	flag=1;
-	while(flag&&i<1){
+	while(flag&&i<N_IT){
 		double st1=monotonic_seconds();
 		Label_Point();
 		st1=monotonic_seconds()-st1;
@@ -240,6 +240,9 @@ void Label_Point(){
 
 #else			
 			temp=Calculate_Distance(x,i,c_id[j],Dim,N_points);
+			if(i==796){
+				printf("%d: C=%d with dis=%lf, label=%d, and sum=%lf\n",i,c_id[j],temp, label[i], sum);
+			}
 			if(temp<sum){
 				label[i]=j;
 				sum=temp;
@@ -250,13 +253,26 @@ void Label_Point(){
 	}
 	Quicksort(label, 0, N_points-1);
 //	printf("Finish quicksort\n");
-	for(i=0;i<N_points;i++){
-		printf("%d, %d\n",label[i],label[i+N_points]);
-	}
+//	for(i=0;i<N_points;i++){
+//		printf("%d, %d\n",label[i],label[i+N_points]);
+//	}
 	prefix[0]=0;
 	for(i=0; i<N_c;i++){
 		prefix[i+1]=prefix[i]+n_list[i];
 	}
+/*	
+	for(i=0;i<N_c+1;i++){
+		printf("prefix[%d]=%d\n", i, prefix[i]);
+	}
+	k=1;
+	for(i=0;i<N_points;i++){
+		if(prefix[k]==i){
+			printf("-------------------------\n");
+			k++;
+		}
+		printf("%d: %d, %d\n",i, label[i],label[i+N_points]);
+	}
+*/
 }
 
 int Find_Medroid(){
@@ -306,13 +322,14 @@ void Save_Result(){
 		fprintf(out, "%d\n",label[i]);
 	}
 	fclose(out);
-	out = fopen("centroids.txt","w");
+	out = fopen("medoids.txt","w");
 	for(i=0; i<N_c; i++){
-		for(j=0; j<Dim-1; j++){
+		fprintf(out, "%d\n", c_id[i]);
+/*		for(j=0; j<Dim-1; j++){
 			fprintf(out, "%lf ",x[c_id[i]+j*N_points]);
 		}
 		fprintf(out,"%lf\n",x[c_id[i]+(Dim-1)*N_points]);
-	}
+*/	}
 	fclose(out);
 }
 

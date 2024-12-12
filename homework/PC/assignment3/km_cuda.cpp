@@ -1,8 +1,11 @@
 #include "km_cuda.h"
 
+static void print_time(double const seconds);
+char Load_File(char *str);
+void Calculate_2N();
+void Initialize();
 
-static inline double monotonic_seconds()
-{
+static inline double monotonic_seconds(){
 #ifdef __MACH__
   /* OSX */
   static mach_timebase_info_data_t info;
@@ -20,47 +23,39 @@ static inline double monotonic_seconds()
 #endif
 }
 
-static void print_time(double const seconds);
-char Load_File(char *str);
-void Calculate_2N();
-void Initialize();
 
 
 
-int NC, NC2, TPB, BPG, BPG2, BPGC, NP, NP2, Dim, NT, NB;
-
-
+int NC, NC2, TPB, BPG, BPG2, BPGC, BPGR, NP, NP2, Dim, Nij;
 int *h_label, *h_id, *h_id_old, *h_flag;
 double *h_x;
-
-int *d_label, *d_id, *d_id_old, *d_nlist, *d_prefix, *d_flag;
+int *d_label, *d_clist, *d_id, *d_id_old, *d_nlist, *d_prefix, *d_flag;
 double *d_x, *d_min, *d_sum;
 
 int main(int argc, char** argv){
 	double st,et;
-	if(argc<4) {
+	if(argc<5) {
 		printf("Not enough of arguemt\n");
 		return 1;
 	}
-	if(argc>4) {
+	if(argc>5) {
 		printf("Too many arguements\n");
 		return 2;
 	}
 	
 	NC=atoi(argv[2]);
-	TPB= atoi(argv[3]);
+	BPG=atoi(argv[3]);
+    TPB=atoi(argv[4]);
+    
 	if(Load_File(argv[1])){
 		return 3;
 	}
 
 	st=monotonic_seconds();
-
 	Initialize();
     Send_To_Device();
     GPU_Compute();
     Send_To_Host();
-
-//	printf("break at %d\n",i-1);
 	et=monotonic_seconds();
 	print_time(et-st);
 	Save_Result();
@@ -112,19 +107,27 @@ char Load_File(char *str){
 
 
 void Calculate_2N(){
+    if(BPG<0){
+        BPG=(int)((NP+TPB-1)/TPB);
+        Nij=1;
+    }else{
+        Nij=(int)((NP+BPG*TPB-1)/(BPG*TPB));
+    }
+    
+    //fix for sorting, prefix sum and reduction
     NC2=0;
     NP2=1;
     while(NP2<NP){
         NP2<<=1;
     }
     while(NC2<NC){
-        NC2+=TPB;
+        NC2+=DTPB;
     }
-    BPG=(int)((NP+TPB-1)/TPB);
-    BPG2=(int)((NP2+TPB-1)/TPB);
-    BPGC=(int)(NC2/TPB);
-//    printf("NP=%d, NP2=%d, NC=%d, NC2=%d, Dim=%d\n",NP, NP2, NC, NC2,Dim);
-//    printf("TPB=%d, BPG=%d, BPG2=%d, BPGC=%d\n",TPB, BPG, BPG2, BPGC);
+    BPG2=(int)((NP2+DTPB-1)/DTPB);
+    BPGC=(int)(NC2/DTPB);
+    BPGR=(int)((NP+DTPB-1)/DTPB);
+    //printf("NP=%d, NP2=%d, NC=%d, NC2=%d, Nij=%d, Dim=%d\n",NP, NP2, NC, NC2, Nij,Dim);
+    //printf("TPB=%d, DTPB=%d, BPG=%d, BPG2=%d, BPGC=%d BPGR=%d\n",TPB, DTPB, BPG, BPG2, BPGC, BPGR);
 }
 
 void Initialize(){
@@ -143,12 +146,12 @@ void Save_Result(){
 		fprintf(out, "%d\n",h_label[i]);
 	}
 	fclose(out);
-	out = fopen("centroids.txt","w");
+	out = fopen("medoids.txt","w");
 	for(i=0; i<NC; i++){
 		for(j=0; j<Dim-1; j++){
-			fprintf(out, "%lf ",h_x[j+h_id[i]*Dim]);
+			fprintf(out, "%e ",h_x[j+h_id[i]*Dim]);
 		}
-		fprintf(out,"%lf\n",h_x[(Dim-1)+h_id[i]*Dim]);
+		fprintf(out,"%e\n",h_x[(Dim-1)+h_id[i]*Dim]);
 	}
 	fclose(out);
 }
