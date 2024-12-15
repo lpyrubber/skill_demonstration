@@ -15,7 +15,7 @@ __global__ void Prefix_Down_Sweep(int *d_a, int *d_b);
 __global__ void Offest_Between_Block(int *d_b, int N);
 __global__ void Add_Offset(int *d_a, int *d_b);
 __global__ void Array_Initial(double *min, int* nlist, int* id, int* prefix, int *d_flag, int N, int NC, int NC2);
-__global__ void Nearest_Medroid(double *x, int *label, int *clist, int *id, int *id_old, int *nlist, int Nij, int NC, int N, int N2, int Dim, int BPGR);
+__global__ void Nearest_Medroid(double *x, int *label, int *clist, int *id, int *id_old, int *nlist, int *d_flag, int Nij, int NC, int N, int N2, int Dim, int BPGR);
 __global__ void Nlist_Initial(int *nlist, int *label, int *id, int N, int NC);
 __global__ void Nlist_Reduction(int *nlist, int offset, int gap, int NC);
 __global__ void Nlist_To_Prefix(int *nlist, int *prefix, int NC, int NC2, int BBPG, int BPG, int N);
@@ -68,7 +68,7 @@ void Allocate_Memory(){
     cudaMalloc((void**) &d_nlist, size);
     size=(NC2+1)*sizeof(int);
     cudaMalloc((void**) &d_prefix, size);
-    size=BPGC*sizeof(int);
+    size=NP*sizeof(int);
     cudaMalloc((void**) &d_flag, size);
     size=NP*Dim*sizeof(double);
     cudaMalloc((void**) &d_x, size);
@@ -89,14 +89,17 @@ void Send_To_Device(){
 void GPU_Compute(){
     char flag=1;
     int it=0;
-    Label_Point();
     while((it<N_IT)&&flag){
-        Find_Medroid();
-        flag=Judge();
+	double mid=monotonic_seconds();
         Label_Point();
+	printf("label %lf time\n",mid=monotonic_seconds()-mid);
+	double mid2=monotonic_seconds();
+        Find_Medroid();
+	printf("medroid %lf time\n",mid2=monotonic_seconds()-mid2);
+        flag=Judge();
         it++;
     }
-//    printf("it stop at %d\n",it);
+    printf("it stop at %d\n",it);
 }
 
 void Send_To_Host(){
@@ -136,7 +139,7 @@ char Judge(){
     cudaMemcpy(h_flag, d_flag, size, cudaMemcpyDeviceToHost);
     for(i=0; i<BPGC; i++){
         flag|=h_flag[i];
- //       printf("%d: %d\n",i, h_flag[i]);
+        printf("%d: %d\n",i, h_flag[i]);
     }
     return flag;
 }
@@ -165,7 +168,7 @@ void Label_Point(){
     int BBPG=(int)((BPGR+DTPB-1)/DTPB);
     int i, offset;
 
-    Nearest_Medroid<<<BPG,TPB>>>(d_x, d_label, d_clist ,d_id, d_id_old, d_nlist, Nij, NC,NP, NP2,Dim, BPGR);           
+    Nearest_Medroid<<<BPG,TPB>>>(d_x, d_label, d_clist ,d_id, d_id_old, d_nlist, d_flag, Nij, NC,NP, NP2,Dim, BPGR);           
     //reduction for number of each cluster (fix TPB)
     Array_Initial<<<BPGR,DTPB>>>(d_min, d_nlist, d_id, d_prefix, d_flag, NP, NC, NC2);
     Nlist_Initial<<<BPGR,DTPB>>>(d_nlist, d_label, d_id, NP, NC);
@@ -298,7 +301,7 @@ __global__ void Array_Initial(double *min, int* nlist, int* id, int* prefix, int
     if(i<NC*gridDim.x){
         nlist[i]=0;
         min[i]=1e15;
-//        id[i]=N+2;
+        id[i]=N+2;
     }
     if(i<NC2){
         prefix[i]=0;
@@ -313,7 +316,7 @@ __global__ void Array_Initial(double *min, int* nlist, int* id, int* prefix, int
 
 }
 
-__global__ void Nearest_Medroid(double *x,int *label, int *clist,int *id, int *id_old, int *nlist, int Nij, int NC, int N, int N2, int Dim, int BPGR){
+__global__ void Nearest_Medroid(double *x,int *label, int *clist,int *id, int *id_old, int *nlist, int *d_flag, int Nij, int NC, int N, int N2, int Dim, int BPGR){
     int i = threadIdx.x + blockDim.x * blockIdx.x;
     int j = Nij*i;
     double min2,temp;

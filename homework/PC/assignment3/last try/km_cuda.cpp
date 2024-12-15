@@ -149,9 +149,9 @@ void Save_Result(){
 	out = fopen("medoids.txt","w");
 	for(i=0; i<NC; i++){
 		for(j=0; j<Dim-1; j++){
-			fprintf(out, "%0.8f ",h_x[j+h_id[i]*Dim]);
+			fprintf(out, "%e ",h_x[j+h_id[i]*Dim]);
 		}
-		fprintf(out,"%0.8f \n",h_x[(Dim-1)+h_id[i]*Dim]);
+		fprintf(out,"%e\n",h_x[(Dim-1)+h_id[i]*Dim]);
 	}
 	fclose(out);
 }

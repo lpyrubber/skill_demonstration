@@ -46,7 +46,7 @@ static inline double monotonic_seconds()
 }
 
 #define BUFFER_SIZE 1000000
-#define ITERATIONS 1
+#define ITERATIONS 20
 
 struct cluster_assg_args {
   double **row_pointer;
@@ -320,7 +320,7 @@ int main(int argc, char *argv[]) {
   double time = monotonic_seconds() - start;
   print_time(time);
 
-  FILE *f = fopen("clusters_v.txt", "w");
+  FILE *f = fopen("clusters.txt", "w");
   if (f == NULL) {
     printf("Error opening file!\n");
     exit(1);
@@ -332,7 +332,7 @@ int main(int argc, char *argv[]) {
 
   fclose(f);
 
-  f = fopen("medoids_v.txt", "w");
+  f = fopen("medoids.txt", "w");
   if (f == NULL) {
     printf("Error opening file!\n");
     exit(1);

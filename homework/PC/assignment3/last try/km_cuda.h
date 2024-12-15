@@ -14,7 +14,7 @@
 #define N_IT 20
 #define SUM_MAX 1e14
 //for reduction, prefix sum and sorting
-#define DTPB 1024
+#define DTPB 256
 
 
 //cpu function
